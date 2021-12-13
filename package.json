@@ -1,0 +1,15 @@
+{
+  "name": "snail",
+  "version": "0.0.0",
+  "description": "A pushdown automoton for the web based programming game: Screeps",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EngineerYo/SNaiL.git"
+  },
+  "author": "Will Crain",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EngineerYo/SNaiL/issues"
+  },
+  "homepage": "https://github.com/EngineerYo/SNaiL#readme"
+}
