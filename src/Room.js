@@ -1,31 +1,39 @@
-require('RoomJobs.js')
-
 Room.prototype.run = function() {
 	if (!this.memory.setup) {
 		this.setup()
+		return
 	}
+
+	this.loadSpawnQueue()
+	this.loadTasks()
+
+	this.runSpawns()
+	this.runTasks()
+
+	this.saveSpawnQueue()
+	this.saveTasks()
 }
 
-// Spawning
+//#region Spawning code
 Room.prototype.saveSpawnQueue = function() {
 	this.memory.spawnQueue = this.spawnQueue
 }
 Room.prototype.loadSpawnQueue = function() {
 	this.spawnQueue = this.memory.spawnQueue
 }
-Room.prototype.addCreep = function(bodyPlan, memory, spawnPriority = 2) {
-	let creepName = `${this.name}-${this.memory.creepTicker}`
-	if (!memory.home) {
-		memory.home = this.name
+Room.prototype.spawnCreep = function(creepName, creepBody, memObject) {
+	if (_.has(this.spawnQueue, creepName)) {
+		return false
 	}
-	memory.role = body
-	body = this.planBody(body)
 
-	let creepObj = {body, creepName, memory, spawnPriority}
-	this.memory.creepTicker += 1
-	this.spawnQueue.push(creepObj)
+	let creepObj = {
+		'body': creepBody,
+		'memory': memObject
+	}
 
-	return creepName
+	this.spawnQueue[creepName] = creepObj
+
+	return true
 }
 Room.prototype.runSpawns = function() {
 	if (this.spawnQueue.length == 0) {
@@ -33,117 +41,103 @@ Room.prototype.runSpawns = function() {
 	}
 
 	let availableSpawns = _.filter(this.find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN && !s.spawning)
-	this.spawnQueue = _.sortBy(this.spawnQueue, s => s.spawnPriority).reverse()
+	let spawnQueueKeys = Object.keys(this.spawnQueue)
 
-	availableSpawns.forEach(function(spawner, spawnIdx) {
-		if (spawnQueue.length >= spawnIdx) {
+	for (let spawnIdx in availableSpawns) {
+		let spawner = availableSpawns[spawnIdx]
+
+		if (spawnQueueKeys.length <= spawnIdx) {
 			return
 		}
 
-		let targetCreep = this.spawnQueue[spawnIdx]
-		let spawnCheck = spawner.createCreep(targetCreep.body, targetCreep.name, targetCreep.memory)
+		let targetCreep = this.spawnQueue[spawnQueueKeys[spawnIdx]]
+		let spawnCheck = spawner.createCreep(targetCreep.body, spawnQueueKeys[spawnIdx], targetCreep.memory)
 		let illegalErrors = [-1, -3, -10, -14]
 
 		if (typeof spawnCheck == 'string') {
-			this.spawnQueue = _.drop(this.spawnQueue, 1)
+			delete this.spawnQueue[spawnQueueKeys[spawnIdx]]
 		}
-		else if (illegalErrors.includes(toSpawn)) {
-			this.spawnQueue = _.drop(this.spawnQueue, 1)
+		else if (illegalErrors.includes(spawnCheck)) {
+			delete this.spawnQueue[spawnQueueKeys[spawnIdx]]
 		}
-	})
+	}
 }
+//#endregion
 
-
-// Misc
-Room.prototype.getPID = function() {
-	let toReturn = this.memory.PIDCount += 1
-	this.memory.PIDCount += 1
-
-	return toReturn
+//#region Setup
+Room.prototype.setup = function() {
+	this.validateMemory()
+	this.setupSources()
 }
 Room.prototype.validateMemory = function() {
     let objects = {
-		spawnQueue: [], 
-		sources: {}, 
-		setup: false, 
-		PIDCount: 0, 
+		spawnQueue: {}, 
+		tasks: {}, 
+		setup: true,
 		buildQueue: [], 
-		level: 0, 
-		creepTicker: 0
+		level: 1
 	}
-	objects.forEach(function(val, idx) {
-		if (!idx in this.memory) {
-			this.memory[idx] = val
-		}
-	})
-}
+	for (let key in objects) {
+		let val = objects[key]
 
-
-Room.prototype.operateMining = function() {
-
-	// Check for source memory
-	if (!this.memory.sources) {
-		console.warn(`Setup room ${this.name} before operating`)
-		return
-	}
-
-	// Check for vision
-	if (!this.name in Game.rooms) {
-		console.warn(`No vision of ${this.name}`)
-		return
-	}
-
-	this.memory.sources.forEach(function(sourceMem, idx) {
-		let sourcePosition = RoomPosition.deserialize(sourceMem.destination)
-
-		// Check for source vision
-		if (!sourcePosition.roomName in Game.rooms) {
-			continue
-		}
-
-
-	})
-}
-
-
-Room.prototype.setup = function() {
-	if (this.memory.setup) {
-		return
-	}
-
-	let spawnLocation = self.find(FIND_STRUCTURES, s => s.structureType == STRUCTURE_SPAWN)
-
-	this.memory.sources = []
-	for (let source in this.find(FIND_SOURCES)) {
-		self.setupSource(source)
-	}
-
-	this.memory.spawnQueue = []
-	this.memory.taskQueue = []
-}
-
-Room.prototype.setupSource = function(source, path) {
-	let spawnLocation = self.find(FIND_STRUCTURES, s => s.structureType == STRUCTURE_SPAWN)
-	let path = this.findPath(spawnLocation.pos, source.pos, {ignoreCreeps: true, ignoreRoads: true})
-
-	let energyPerTick = source.energyCapacity / ENERGY_REGEN_TIME
-	let workParts = energyPerTick / 2
-
-	let haulPerTick = path.length * 2 * energyPerTick
-
-	let memoryObj = {
-		'destination': 	RoomPosition.serialiaze(source.pos),
-		'origin':		RoomPosition.serialiaze(spawnLocation.pos),
-		'path':			Room.serializePath(path),
-		'pathLen':		path.length,
-		'workParts':	workParts,
-		'haulParts':	haulPerTick,
-		'creeps':		{
-			'haulers':		[],
-			'miners':		[],
-			'gatherers':	[]
+		if (!_.has(this.memory, key)) {
+			this.memory[key] = val
 		}
 	}
-
-	this.memory.sources.push(memoryObj)
 }
+Room.prototype.setupSources = function() {
+	let sources = this.find(FIND_SOURCES)
+
+	for (let idx in sources) {
+		let source = sources[idx]
+
+		let spawnLocation = _.find(this.find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN)
+		console.log(spawnLocation.pos, source.pos)
+		let path = this.findPath(spawnLocation.pos, source.pos, {ignoreCreeps: true, ignoreRoads: true})
+
+		let taskInfo = {
+			'sourceID':		source.id,
+			'sourcePos':	RoomPosition.serialize(source.pos),
+			'sourceAmt':	source.energyCapacity,
+			'path':			Room.serializePath(path),
+			'pathLength':	path.length,
+			'originPos':	RoomPosition.serialize(spawnLocation.pos)
+		}
+
+		this.addTask(new Task.GATHERING(this.name, Task.Task.makeID(), taskInfo))
+	}
+}
+//#endregion
+
+//#region Tasks
+Room.prototype.saveTasks = function() {
+	for (let taskID in this.tasks) {
+		let taskObj = this.tasks[taskID]
+		this.memory.tasks[taskID] = taskObj
+	}
+}
+Room.prototype.loadTasks = function() {
+	this.tasks = {}
+	for (let taskID in this.memory.tasks) {
+		let taskMem = this.memory.tasks[taskID]
+		this.tasks[taskID] = new Task[taskMem.type](this.name, taskID, taskMem.taskInfo, taskMem.creeps)
+	}
+}
+Room.prototype.addTask = function(taskObj) {
+	// Add a check if a task with this id already exists
+	this.memory.tasks[taskObj.id] = taskObj
+}
+Room.prototype.runTasks = function() {
+	for (let taskID in this.tasks) {
+		let taskObj = this.tasks[taskID]
+
+		// Check to see if we've been initialized
+		if (!taskObj.taskInfo.init) {
+			taskObj.init()
+			taskObj.taskInfo['init'] = true
+		}
+
+		taskObj.run()
+	}
+}
+//#endregion
