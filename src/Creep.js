@@ -7,6 +7,7 @@ Creep.prototype.run = function() {
 	this.invokeState()
 }
 
+//#region STATES
 Creep.prototype.STATE_HARVEST = function(scope) {
 	let {posStr, canPop=true, targetRoomName = this.memory.homeRoom} = scope
 	let homeRoom = Game.rooms[this.memory.homeRoom]
@@ -151,5 +152,10 @@ Creep.prototype.STATE_BUILD = function(scope) {
 		this.pushState('MOVE', {posStr: posStr, range: 3})
 	}
 
-	let buildAction = this.build(conSite)
+	let buildAction = this.build(conSite[0])
+}
+//#endregion
+
+Creep.bodyCost = function(body) {
+	return _.sum(body, s => BODYPART_COST[s])
 }
