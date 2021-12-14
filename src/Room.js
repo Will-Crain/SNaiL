@@ -7,6 +7,7 @@ Room.prototype.run = function() {
 	this.loadSpawnQueue()
 	this.loadTasks()
 
+	this.checkLevelUp()
 	this.runSpawns()
 	this.runTasks()
 
@@ -141,3 +142,15 @@ Room.prototype.runTasks = function() {
 	}
 }
 //#endregion
+
+// Misc
+Room.prototype.checkLevelUp = function() {
+	if (this.memory.level != this.controller.level) {
+		console.log(`${this.name} levelled up!`)
+		this.memory.level = this.controller.level
+		
+		for (let taskName in this.tasks) {
+			this.tasks[taskName].update()
+		}
+	}
+}
