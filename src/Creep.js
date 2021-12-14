@@ -130,12 +130,12 @@ Creep.prototype.STATE_BUILD = function(scope) {
 	let conSite = RoomPosition.parse(posStr).lookFor(LOOK_CONSTRUCTION_SITES)
 
 	// Did we find a construction site?
-	if (!conSite) {
+	if (!conSite || conSite.length == 0) {
 		if (canPop) {
 			this.popState()
 		}
 
-		// look for new construction site
+		// if we're here, we're a dedicated builder. look for new construction site
 	}
 
 	// Are we empty?
