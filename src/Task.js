@@ -39,7 +39,12 @@ class GATHERING extends Task {
 		this.id = id
 	}
 
-	static gathererBody = [MOVE, MOVE, CARRY, CARRY, WORK]
+	static BODIES = {
+		GATHERER: {
+			1:	[MOVE, MOVE, CARRY, CARRY, WORK],
+			2:	[WORK, WORK, CARRY, CARRY, MOVE, MOVE]
+		}
+	}
 
 	init() {
 		this.initCreeps()
@@ -57,7 +62,7 @@ class GATHERING extends Task {
 		
 		for (i = 0; i < adjacentPositions; i += 1) {
 			let creepName = `${this.id} ${Math.random().toString(16).slice(8)}`
-			let creepBody = GATHERING.gathererBody
+			let creepBody = 'GATHERER'
 
 			this.creeps[creepName] = {
 				'body':		creepBody,
@@ -83,8 +88,22 @@ class GATHERING extends Task {
 					'stack':		stateStack
 				}
 
-				let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepObj.body, memObject)
+				let bodyStr = creepObj.body
+				let creepBody = []
 
+				for (let i = 8; i > 0; i--) {
+					if (!_.has(GATHERING.BODIES[bodyStr], i)) {
+						continue
+					}
+					if (Creep.bodyCost(GATHERING.BODIES[bodyStr][i]) <= Game.rooms[this.room].energyCapacityAvailable) {
+						creepBody = GATHERING.BODIES[bodyStr][i]
+						break
+					}
+				}
+
+				console.log(creepBody)
+
+				let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
 				if (succeeded) {
 					this.creeps[creepName].status = 1
 				}
@@ -105,6 +124,13 @@ class GATHERING extends Task {
 
 			this.creeps[creepName].status = 0
 			creepObj.run()
+		}
+	}
+	update() {
+		let roomLevel = Game.rooms[this.room].controller.level
+
+		for (let creepName in this.creeps) {
+			this.creeps[creepName].body = GATHERING.gathererBodies[roomLevel]
 		}
 	}
 }
