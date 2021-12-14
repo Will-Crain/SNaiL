@@ -39,7 +39,6 @@ RoomObject.prototype.pushState = function(state, scope={}) {
         throw new Error(`Failure to add ${state} to ${this}, Stack too large`)
 	}
 
-	console.log(`Adding ${state} to ${this.name}`)
 	this.memory.stack.unshift([state, scope])
 	this.invokeState()
 
