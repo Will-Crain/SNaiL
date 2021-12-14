@@ -4,11 +4,11 @@ RoomObject.prototype.invokeState = function() {
 	}
 
 	let [[state, scope]] = this.memory.stack
-	this[method](scope)
+	this[`STATE_${state}`](scope)
 
 	return
 }
-RoomObject.prototype.getState = function(defaultState = 'Idle') {
+RoomObject.prototype.getState = function(defaultState = 'IDLE') {
 	if (!this.memory.stack) {
 		return defaultState
 	}
@@ -20,25 +20,26 @@ RoomObject.prototype.setState = function(state, scope={}) {
 		this.memory.stack = []
 	}
 
-	if (!this[state]) {
+	if (!this[`STATE_${state}`]) {
 		console.warn(`${this.name} has no method ${state}`)
 	}
 
-	this.stack[0] = [state, scope]
+	this.memory.stack[0] = [state, scope]
 	return state
 }
 RoomObject.prototype.pushState = function(state, scope={}) {
-	if (!this.stack) {
+	if (!this.memory.stack) {
 		this.memory.stack = []
 	}
 
-	if (!this[state]) {
+	if (!this[`STATE_${state}`]) {
         throw new Error(`Failure to add ${state} to ${this}, No such state`)
 	}
-	if (this.stack.length > MAX_STACK_LENGTH) {
+	if (this.memory.stack.length > MAX_STACK_LENGTH) {
         throw new Error(`Failure to add ${state} to ${this}, Stack too large`)
 	}
 
+	console.log(`Adding ${state} to ${this.name}`)
 	this.memory.stack.unshift([state, scope])
 	this.invokeState()
 
@@ -49,7 +50,7 @@ RoomObject.prototype.popState = function() {
 		return
 	}
 
-	let [state] = this.stack.shift()
+	let [state] = this.memory.stack.shift()
 }
 
 RoomObject.prototype.skipState = function() {
@@ -58,4 +59,7 @@ RoomObject.prototype.skipState = function() {
 	}
 
 	this.pushState('WAIT', {until: Game.time+1})
+}
+RoomObject.prototype.clearStack = function() {
+	this.memory.stack = [[]]
 }
