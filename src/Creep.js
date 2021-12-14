@@ -15,25 +15,26 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 	let targetRoom = Game.rooms[targetRoomName]
 
 	// If we're full ..
-	if (this.store.getFreeCapacity() == 0) {
-
-		this.say('!')
+	if (this.store.getUsedCapacity() == this.store.getCapacity()) {
 		// Check to see if there's an empty spawn or extension
 		if (targetRoom.energyAvailable < targetRoom.energyCapacityAvailable) {
 			let allowedStructures = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION]
 			let targetStructure = _.find(targetRoom.find(FIND_MY_STRUCTURES), s => allowedStructures.includes(s.structureType) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
 
 			this.pushState('UNLOAD', {posStr: RoomPosition.serialize(targetStructure.pos), resource: RESOURCE_ENERGY})
+			return
 		}
 		
 		// Check to see if we can build
 		let constructionSites = targetRoom.find(FIND_CONSTRUCTION_SITES)
 		if (constructionSites.length > 0) {
 			this.pushState('BUILD', {posStr: RoomPosition.serialize(constructionSites[0].pos)})
+			return
 		} 
 
 		// Otherwise, toss energy in controller
 		this.pushState('UPGRADE', {targetRoomName: targetRoomName})
+		return
 	}
 
 	// If we're not full ..
@@ -41,6 +42,7 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 		// Check if we're in range of source
 		if (this.pos.getRangeTo(posObj) > 1) {
 			this.pushState('MOVE', {posStr: posStr, range: 1})
+			return
 		}
 
 		// Otherwise, mine source
@@ -72,6 +74,7 @@ Creep.prototype.STATE_UNLOAD = function(scope) {
 	// If we're not in range ..
 	if (!this.pos.inRangeTo(posObj, 1)) {
 		this.pushState('MOVE', {posStr: posStr})
+		return
 	}
 
 	// Otherwise, if we're empty ..
@@ -115,6 +118,7 @@ Creep.prototype.STATE_UPGRADE = function(scope) {
 	// Otherwise, check if we're in range
 	if (!this.pos.inRangeTo(posObj, 3)) {
 		this.pushState('MOVE', {posStr: posStr, range: 3})
+		return
 	}
 
 	// Otherwise, upgrade
