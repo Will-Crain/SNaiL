@@ -60,7 +60,7 @@ class GATHERING extends Task {
 		// Find how many gatherers we can fit around the source
 		let adjacentPositions = roomPos.getAdjacent().length
 		
-		for (i = 0; i < adjacentPositions; i += 1) {
+		for (i = 0; i < adjacentPositions*2; i += 1) {
 			let creepName = `${this.id} ${Math.random().toString(16).slice(8)}`
 			let creepBody = 'GATHERER'
 
@@ -100,8 +100,6 @@ class GATHERING extends Task {
 						break
 					}
 				}
-
-				console.log(creepBody)
 
 				let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
 				if (succeeded) {
