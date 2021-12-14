@@ -7,7 +7,7 @@ module.exports = function(grunt) {
         screeps: {
             options: {
                 email: 'willcrain96@gmail.com',
-                token: '1852ac98-501d-489e-9f81-828ad8a6c690',
+                token: '3c040726-bbc4-4d51-9cd9-24edf957bd85',
                 branch: 'SNaiL',
                 server: '0'
             },
