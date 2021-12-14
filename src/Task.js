@@ -127,11 +127,7 @@ class GATHERING extends Task {
 		}
 	}
 	update() {
-		let roomLevel = Game.rooms[this.room].controller.level
-
-		for (let creepName in this.creeps) {
-			this.creeps[creepName].body = GATHERING.gathererBodies[roomLevel]
-		}
+		//
 	}
 }
 
