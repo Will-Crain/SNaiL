@@ -9,14 +9,15 @@ Creep.prototype.run = function() {
 
 //#region STATES
 Creep.prototype.STATE_HARVEST = function(scope) {
-	let {posStr, canPop=true, targetRoomName = this.memory.homeRoom} = scope
+	let {posStr, canPop=true, targetRoomName = this.memory.homeRoom, status=0} = scope
 	let homeRoom = Game.rooms[this.memory.homeRoom]
 
 	let posObj = RoomPosition.parse(posStr)
 	let targetRoom = Game.rooms[targetRoomName]
 
-	// If we're full ..
-	if (this.store.getUsedCapacity() == this.store.getCapacity()) {
+	let nearSource = this.room.name == targetRoomName && this.pos.inRangeTo(posObj, 1)
+
+	let getNextAction = function() {
 		// Check to see if there's an empty spawn or extension
 		if (targetRoom.energyAvailable < targetRoom.energyCapacityAvailable) {
 			let allowedStructures = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION]
@@ -38,15 +39,27 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 		return
 	}
 
-	// If we're not full ..
-	else {
-		// Check if we're in range of source
-		if (this.pos.getRangeTo(posObj) > 1) {
+	// If we're not close to the source ..
+	if (!nearSource) {
+		// and we're empty ..
+		if (this.store.getUsedCapacity() == 0) {
 			this.pushState('MOVE', {posStr: posStr, range: 1})
-			return
 		}
 
-		// Otherwise, mine source
+		// and we're not empty ..
+		else {
+			getNextAction.call(this)
+		}
+	}
+
+	// If we're close to the source ..
+	else {
+		// and we're full ..
+		if (this.store.getUsedCapacity() == this.store.getCapacity()) {
+			getNextAction.call(this)
+		}
+		
+		// and we're not full ..
 		let sourceObj = posObj.lookFor(LOOK_SOURCES)[0]
 		let harvestAction = this.harvest(sourceObj)
 	}
