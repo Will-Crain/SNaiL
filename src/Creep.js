@@ -64,6 +64,54 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 		let harvestAction = this.harvest(sourceObj)
 	}
 }
+Creep.prototype.STATE_MINE = function(scope) {
+	let {sourcePosStr, standPosStr} = scope
+	let standPosObj = RoomPosition.parse(standPosStr)
+
+	// Are we in the right room?
+	if (this.room.name != standPosObj.roomName) {
+		// cry
+	}
+	// Are we on the stand position?
+	else if (!this.pos.inRangeTo(standPosObj, 0)) {
+		this.pushState('MOVE', {posStr: standPosStr, range: 0})
+		return
+	}
+	else {
+		let minePosObj = RoomPosition.parse(minePosStr)
+		let mineObj = _.first(minePosObj.lookFor(LOOK_SOURCES))
+		
+		// If source is empty ..
+		if (mineObj.energy == 0) {
+			// Are we empty?
+			if (self.store.getUsedCapacity() == 0) {
+				self.pushState('WAIT', {until: Game.time + source.ticksToRegeneration})
+				return
+			}
+
+			// Is there a caontainer?
+			let container = _.find(standPosObj.lookFor(LOOK_STRUCTURES), s => s.structureType == STRUCTURE_CONTAINER)
+			if (_.isUndefined(container)) {
+				// Is there a construction site?
+				let conSite = _.find(standPosObj.lookFor(LOOK_CONSTRUCTION_SITES), s => s.structureType == STRUCTURE_CONTAINER)
+				if (_.isUndefined(conSite)) {
+					// cry?
+				}
+				else {
+					this.build(conSite)
+				}
+			}
+			else {
+				this.repair(container)
+			}
+		}
+		// .. otherwise ..
+		else {
+			let harvestAction = this.harvest(mineObj)
+		}
+	}
+
+}
 
 Creep.prototype.STATE_MOVE = function(scope) {
 	let {posStr, range=1, ignoreCreeps=false} = scope
@@ -81,8 +129,8 @@ Creep.prototype.STATE_MOVE = function(scope) {
 	}
 }
 
-Creep.prototype.STATE_UNLOAD = function(scope) {
-	let {posStr, resource} = scope
+Creep.prototype.STATE_LOAD = function(scope) {
+	let {posStr, resource, canPop=true, unloadPosStr} = scope
 	let posObj = RoomPosition.parse(posStr)
 
 	// If we're not in range ..
@@ -92,8 +140,52 @@ Creep.prototype.STATE_UNLOAD = function(scope) {
 	}
 
 	// Otherwise, if we're empty ..
-	if (this.store.getUsedCapacity == 0) {
-		this.popState()
+	if (this.store.getUsedCapacity() == 0) {
+
+		// .. find an object to take from
+		let targetObj = _.find(posObj.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacitY(resource) > 0)
+		if (!targetObj) {
+			if (canPop) {
+				this.popState()
+				return
+			}
+
+			this.pushState('WAIT', {until: Game.time + 1})
+			return
+		}
+		else {
+			let transaction = this.withdraw(targetObj, resource)
+			if (_.isUndefiend(unloadPosStr)) {
+				this.popState()
+				return
+			}
+			else {
+				this.pushState('UNLOAD', {posStr: unloadPosStr, resource: resource})
+				return
+			}
+		}
+		
+	}
+}
+Creep.prototype.STATE_UNLOAD = function(scope) {
+	let {posStr, resource, canPop=true, loadPosStr} = scope
+	let posObj = RoomPosition.parse(posStr)
+
+	// If we're not in range ..
+	if (!this.pos.inRangeTo(posObj, 1)) {
+		this.pushState('MOVE', {posStr: posStr})
+		return
+	}
+
+	// Otherwise, if we're empty ..
+	if (this.store.getUsedCapacity() == 0) {
+		if (_.isUndefined(loadPosStr)) {
+			this.popState()
+			return
+		}
+		else {
+			this.pushState('LOAD', {posStr: loadPosStr, resource: resource})
+		}
 	}
 
 	// Otherwise,
@@ -166,6 +258,14 @@ Creep.prototype.STATE_BUILD = function(scope) {
 	}
 
 	let buildAction = this.build(conSite[0])
+}
+
+Creep.prototype.STATE_WAIT = function(scope) {
+	let {until} = scope
+
+	if (Game.time >= until) {
+		this.popState()
+	}
 }
 //#endregion
 
