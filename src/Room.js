@@ -93,7 +93,6 @@ Room.prototype.setupSources = function() {
 		let source = sources[idx]
 
 		let spawnLocation = _.find(this.find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN)
-		console.log(spawnLocation.pos, source.pos)
 		let path = this.findPath(spawnLocation.pos, source.pos, {ignoreCreeps: true, ignoreRoads: true})
 
 		let taskInfo = {
@@ -121,7 +120,7 @@ Room.prototype.loadTasks = function() {
 	this.tasks = {}
 	for (let taskID in this.memory.tasks) {
 		let taskMem = this.memory.tasks[taskID]
-		this.tasks[taskID] = new Task[taskMem.type](this.name, taskID, taskMem.taskInfo, taskMem.creeps)
+		this.tasks[taskID] = new Task[taskMem.type](taskMem)
 	}
 }
 Room.prototype.addTask = function(taskObj) {
