@@ -28,8 +28,8 @@ class GATHERING extends Task {
 	}
 	*/
 	constructor(scope) {
+		let {room, id, taskInfo, creeps={}} = scope
 		super()
-		let {room, id, taskInfo, creeps} = scope
 
 		this.room = room
 		this.id = id
@@ -145,20 +145,19 @@ class MINING extends Task {
 
 	constructor(scope) {
 		super()
-		let {homeName, id, taskInfo, creeps, structures} = scope
+		let {room, id, taskInfo, creeps={}, structures=[]} = scope
 
-		this.room = homeName
+		this.room = room
 		this.taskInfo = taskInfo
 		this.id = id
 		this.creeps = creeps
 		this.structures = structures
 
-		// this.type = 'MINING'
+		this.type = 'MINING'
 	}
 
 	static BODIES = {
 		MINER: function(sourceAmt, originRoom) {
-			
 			let originRoomObj = Game.rooms[originRoom]
 			let roomEnergyCapacity = originRoomObj.energyCapacityAvailable
 
@@ -201,7 +200,10 @@ class MINING extends Task {
 
 			return {body: body}
 		},
-		HAULER: function(sourceAmt, pathLength, hasRoad=false) {
+		HAULER: function(sourceAmt, pathLength, originRoom, hasRoad=false) {
+			let originRoomObj = Game.rooms[originRoom]
+			let roomEnergyCapacity = originRoomObj.energyCapacityAvailable
+
 			let energyPerTick = sourceAmt / ENERGY_REGEN_TIME
 			let desiredCarryParts = Math.ceil((pathLength * 2 * energyPerTick) / CARRY_CAPACITY)
 
@@ -213,7 +215,7 @@ class MINING extends Task {
 
 			// Increment CARRY parts, adding MOVE when needed
 			for (let i = 0; i < desiredCarryParts; i += 1) {
-				toPush = {CARRY: 1}
+				let toPush = {CARRY: 1}
 				if ((bodyCounter[CARRY] + toPush[CARRY])/bodyCounter[MOVE] < movePartsPerCarryPart) {
 					toPush[MOVE] = 1
 				}
@@ -246,6 +248,7 @@ class MINING extends Task {
 
 	init() {
 		this.initCreeps()
+		this.initStructures()
 	}
 	run() {
 		this.runCreeps()
@@ -262,7 +265,7 @@ class MINING extends Task {
 		}
 
 		// Make hauler(s)
-		let {count, body} = MINING.BODIES['HAULER']()
+		let {count, body} = MINING.BODIES['HAULER'](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.room)
 		for (let i = 0; i < count; i+=1) {
 			let haulerName = Task.makeID()
 			this.creeps[haulerName] = {
@@ -270,7 +273,20 @@ class MINING extends Task {
 				'status':	0
 			}
 		}
-		this.creeps[haulerName]
+	}
+	initStructures() {
+		/* Structures follow the form
+		{
+			string posStr,
+			string structureType,
+			status
+		}
+		*/
+		this.structures.push({
+			'posStr':			this.taskInfo.standPos,
+			'structureType':	STRUCTURE_CONTAINER,
+			'status':			1
+		})
 	}
 	spawnCreeps() {
 		for (let creepName in this.creeps) {
@@ -290,9 +306,9 @@ class MINING extends Task {
 						'stack':	stateStack
 					}
 
-					let creepBody = MINING.BODIES[creepObj.body]().body
+					let creepBody = MINING.BODIES[creepObj.body](this.taskInfo.sourceAmt, this.room).body
 
-					let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBOdy, memObject)
+					let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
 					if (succeeded) {
 						this.creeps[creepName].status = 1
 					}
@@ -312,7 +328,7 @@ class MINING extends Task {
 						'stack':	stateStack
 					}
 
-					let creepBody = MINING.BODIES[creepObj.body]().body
+					let creepBody = MINING.BODIES[creepObj.body](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.room).body
 
 					let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
 					if (succeeded) {
@@ -322,9 +338,62 @@ class MINING extends Task {
 			}
 		}
 	}
+	checkStructures() {
+		for (let idx in this.structures) {
+			let structureObj = this.structures[idx]
+
+			// Structure shouldn't exist
+			if (structureObj.status == 1) {
+				let posObj = RoomPosition.parse(structureObj.posStr)
+				let conSiteStatus = Game.rooms[this.room].createConstructionSite(posObj, structureObj.structureType)
+				let allowedReturns = [0, -7]
+				if (allowedReturns.includes(conSiteStatus)) {
+					this.structures[idx].status = 2
+				}
+			}
+			// Structure should exists
+			else if (structureObj.status == 0) {
+				let structureAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_STRUCTURES), s => s.structureType == structureObj.structureType)
+				if (_.isUndefined(structureAtPos)) {
+					this.structures[idx].status = 1
+				}
+			}
+			// Structure should be building, check status
+			else if (structureObj.status == 2) {
+				let posObj = RoomPosition.parse(structureObj.posStr)
+				let structureAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_STRUCTURES, posObj), s => s.structureType == structureObj.structureType)
+				if (!_.isUndefined(structureAtPos)) {
+					this.structures[idx].status = 0
+				}
+				else {
+					let conSiteAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_CONSTRUCTION_SITES, posObj), s => s.structureType == sturctureObj.structureType)
+					if (_.isUndefined(conSiteAtPos)) {
+						this.structures[idx].status = 1
+					}
+				}
+			}
+		}
+	}
+	runCreeps() {
+		for (let creepName in this.creeps) {
+			if (!Game.creeps[creepName]) {
+				continue
+			}
+
+			let creepObj = Game.creeps[creepName]
+			if (creepObj.spawning) {
+				this.creeps[creepName].status = 2
+				continue
+			}
+
+			this.creeps[creepName].status = 0
+			creepObj.run()
+		}
+	}
 }
 
 module.exports = {
 	Task: Task,
-	GATHERING:	GATHERING
+	GATHERING:	GATHERING,
+	MINING: MINING
 }

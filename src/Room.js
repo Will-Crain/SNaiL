@@ -104,7 +104,39 @@ Room.prototype.setupSources = function() {
 			'originPos':	RoomPosition.serialize(spawnLocation.pos)
 		}
 
-		this.addTask(new Task.GATHERING(this.name, Task.Task.makeID(), taskInfo))
+		this.addTask(new Task.GATHERING({
+			'room': 	this.name,
+			'id':		Task.Task.makeID(),
+			'taskInfo':	taskInfo
+		}))
+	}
+}
+Room.prototype.setupMiningTasks = function() {
+	let sources = this.find(FIND_SOURCES)
+	for (let idx in sources) {
+		let source = sources[idx]
+
+		let spawnLocation = _.find(this.find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN)
+		let path = this.findPath(spawnLocation.pos, source.pos, {ignoreCreeps: true, ignoreRoads: true, range: 1})
+
+		let {x, y} = _.last(path)
+		let lastPos = new RoomPosition(x, y, source.pos.roomName)
+
+		let taskInfo = {
+			'sourceID':		source.id,
+			'sourcePos':	RoomPosition.serialize(source.pos),
+			'sourceAmt':	source.energyCapacity,
+			'standPos':		RoomPosition.serialize(lastPos),
+			'path':			Room.serializePath(path),
+			'pathLength':	path.length,
+			'originPos':	RoomPosition.serialize(spawnLocation.pos)
+		}
+		
+		this.addTask(new Task.MINING({
+			'room': 	this.name,
+			'id':		Task.Task.makeID(),
+			'taskInfo':	taskInfo
+		}))
 	}
 }
 //#endregion
