@@ -1,4 +1,6 @@
 // Classes
+global.IMPERIUM = require('Imperium')
+global.Sector = require('Sector')
 global.Task = require('Task')
 
 // Class extensions

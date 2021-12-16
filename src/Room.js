@@ -1,7 +1,6 @@
 Room.prototype.run = function() {
-	if (!this.memory.setup) {
+	if (!_.has(this.memory, 'setup') || this.memory.setup == false) {
 		this.setup()
-		return
 	}
 
 	this.loadSpawnQueue()
@@ -16,6 +15,8 @@ Room.prototype.run = function() {
 }
 
 //#region Spawning code
+
+// Create object hash with keys as creep names, separate from sortable list for actual queue (sorting purposes?)
 Room.prototype.saveSpawnQueue = function() {
 	this.memory.spawnQueue = this.spawnQueue
 }
@@ -68,7 +69,7 @@ Room.prototype.runSpawns = function() {
 //#region Setup
 Room.prototype.setup = function() {
 	this.validateMemory()
-	this.setupSources()
+	this.setupGatherTasks()
 }
 Room.prototype.validateMemory = function() {
     let objects = {
@@ -86,7 +87,7 @@ Room.prototype.validateMemory = function() {
 		}
 	}
 }
-Room.prototype.setupSources = function() {
+Room.prototype.setupGatherTasks = function() {
 	let sources = this.find(FIND_SOURCES)
 
 	for (let idx in sources) {
@@ -119,8 +120,8 @@ Room.prototype.setupMiningTasks = function() {
 		let spawnLocation = _.find(this.find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN)
 		let path = this.findPath(spawnLocation.pos, source.pos, {ignoreCreeps: true, ignoreRoads: true, range: 1})
 
-		let {x, y} = _.last(path)
-		let lastPos = new RoomPosition(x, y, source.pos.roomName)
+		let lastNode = _.last(path)
+		let lastPos = new RoomPosition(lastNode.x, lastNode.y, source.pos.roomName)
 
 		let taskInfo = {
 			'sourceID':		source.id,
@@ -174,14 +175,23 @@ Room.prototype.runTasks = function() {
 }
 //#endregion
 
-// Misc
+// Level related things
 Room.prototype.checkLevelUp = function() {
+	// Check for flag changes instead maybe?	
 	if (this.memory.level != this.controller.level) {
 		console.log(`${this.name} levelled up!`)
 		this.memory.level = this.controller.level
+
+		this[`eventRCL${this.controller.level}`]()
 		
 		for (let taskName in this.tasks) {
 			this.tasks[taskName].update()
 		}
 	}
+}
+
+Room.prototype.eventRCL2 = function() {
+	console.log(`${this.name} - welcome to RCL 2!`)
+
+	this.setupMiningTasks()
 }

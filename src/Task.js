@@ -8,7 +8,7 @@ class Task {
 	}
 
 	static makeID() {
-		return `${Math.random().toString(16).slice(2, 10)}`
+		return `${Math.random().toString(36).slice(2, 11)}`
 	}
 
 	serialize() {
@@ -28,10 +28,10 @@ class GATHERING extends Task {
 	}
 	*/
 	constructor(scope) {
-		let {room, id, taskInfo, creeps={}} = scope
+		let {sectorName, id, taskInfo, creeps={}} = scope
 		super()
 
-		this.room = room
+		this.sectorName = sectorName
 		this.id = id
 
 		this.taskInfo = taskInfo
@@ -42,7 +42,7 @@ class GATHERING extends Task {
 
 	static BODIES = {
 		GATHERER: {
-			1:	[MOVE, MOVE, CARRY, CARRY, WORK],
+			1:	[MOVE, CARRY, WORK],
 			2:	[WORK, WORK, CARRY, CARRY, MOVE, MOVE],
 			3:	[WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
 		}
@@ -61,7 +61,7 @@ class GATHERING extends Task {
 		// Find how many gatherers we can fit around the source
 		let adjacentPositions = roomPos.getAdjacent().length
 		
-		for (i = 0; i < adjacentPositions*2; i += 1) {
+		for (i = 0; i < adjacentPositions; i += 1) {
 			let creepName = Task.makeID()
 			let creepBody = 'GATHERER'
 
@@ -80,12 +80,12 @@ class GATHERING extends Task {
 					'HARVEST', {
 						'posStr':	this.taskInfo.sourcePos,
 						'canPop':	false,
-						'targetRoomName':	this.room
+						'targetRoomName':	this.sectorName
 					}]
 				]
 				let memObject = {
 					'taskID': 		this.id,
-					'home':			this.room,
+					'home':			this.sectorName,
 					'stack':		stateStack
 				}
 
@@ -96,13 +96,17 @@ class GATHERING extends Task {
 					if (!_.has(GATHERING.BODIES[bodyStr], i)) {
 						continue
 					}
-					if (Creep.bodyCost(GATHERING.BODIES[bodyStr][i]) <= Game.rooms[this.room].energyCapacityAvailable) {
+					if (Creep.bodyCost(GATHERING.BODIES[bodyStr][i]) <= Game.rooms[this.sectorName].energyCapacityAvailable) {
 						creepBody = GATHERING.BODIES[bodyStr][i]
 						break
 					}
 				}
 
-				let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
+				let succeeded = Imperium.sectors[this.sectorName].addCreep({
+					'creepName': 	creepName,
+					'creepBody':	creepBody,
+					'memObject':	memObject
+				})
 				if (succeeded) {
 					this.creeps[creepName].status = 1
 				}
@@ -144,12 +148,13 @@ class MINING extends Task {
 	*/
 
 	constructor(scope) {
+		let {sectorName, id, taskInfo, creeps={}, structures=[]} = scope
 		super()
-		let {room, id, taskInfo, creeps={}, structures=[]} = scope
 
-		this.room = room
-		this.taskInfo = taskInfo
+		this.sectorName = sectorName
 		this.id = id
+
+		this.taskInfo = taskInfo
 		this.creeps = creeps
 		this.structures = structures
 
@@ -157,8 +162,8 @@ class MINING extends Task {
 	}
 
 	static BODIES = {
-		MINER: function(sourceAmt, originRoom) {
-			let originRoomObj = Game.rooms[originRoom]
+		MINER: function(sourceAmt, sectorName) {
+			let originRoomObj = Game.rooms[sectorName]
 			let roomEnergyCapacity = originRoomObj.energyCapacityAvailable
 
 			let desiredFreeTime = 20
@@ -169,11 +174,12 @@ class MINING extends Task {
 			let bodyCounter = {}
 			bodyCounter[CARRY] = carryParts
 			bodyCounter[WORK] = 0
-			bodyCounter[MOVE] = 0
+			bodyCounter[MOVE] = 1
 
 			// Increment WORK parts, adding MOVE when needed
 			for (let i = 0; i < desiredWorkParts; i += 1) {
-				let toPush = {WORK: 1}
+				let toPush = {}
+				toPush[WORK] = 1
 				if ( (bodyCounter[WORK] + toPush[WORK])/bodyCounter[MOVE] < movePartPerWorkPart) {
 					toPush[CARRY] = 1
 				} 
@@ -200,8 +206,9 @@ class MINING extends Task {
 
 			return {body: body}
 		},
-		HAULER: function(sourceAmt, pathLength, originRoom, hasRoad=false) {
-			let originRoomObj = Game.rooms[originRoom]
+		HAULER: function(sourceAmt, pathLength, sectorName) {
+			let originRoomObj = Game.rooms[sectorName]
+
 			let roomEnergyCapacity = originRoomObj.energyCapacityAvailable
 
 			let energyPerTick = sourceAmt / ENERGY_REGEN_TIME
@@ -215,10 +222,9 @@ class MINING extends Task {
 
 			// Increment CARRY parts, adding MOVE when needed
 			for (let i = 0; i < desiredCarryParts; i += 1) {
-				let toPush = {CARRY: 1}
-				if ((bodyCounter[CARRY] + toPush[CARRY])/bodyCounter[MOVE] < movePartsPerCarryPart) {
-					toPush[MOVE] = 1
-				}
+				let toPush = {}
+				toPush[CARRY] = 1
+				toPush[MOVE] = 1
 
 				let toPushCost = _.sum(toPush, (num, part) => BODYPART_COST[part]*num)
 				let bodyCost = _.sum(bodyCounter, (num, part) => BODYPART_COST[part]*num)
@@ -264,8 +270,8 @@ class MINING extends Task {
 			'status': 	0
 		}
 
-		// Make hauler(s)
-		let {count, body} = MINING.BODIES['HAULER'](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.room)
+		// // Make hauler(s)
+		let {count, body} = MINING.BODIES['HAULER'](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.sectorName)
 		for (let i = 0; i < count; i+=1) {
 			let haulerName = Task.makeID()
 			this.creeps[haulerName] = {
@@ -296,19 +302,23 @@ class MINING extends Task {
 				if (creepObj.body == 'MINER') {
 					let stateStack = [[
 						'MINE', {
-							'sourcePosStr':	this.taskInfo.sourcePos,
-							'standPosStr':	this.taskInfo.standPos
+							'sourcePosStr':		this.taskInfo.sourcePos,
+							'standPosStr':		this.taskInfo.standPos
 						}]
 					]
 					let memObject = {
 						'taskID':	this.id,
-						'home':		this.room,
+						'home':		this.sectorName,
 						'stack':	stateStack
 					}
 
-					let creepBody = MINING.BODIES[creepObj.body](this.taskInfo.sourceAmt, this.room).body
+					let creepBody = MINING.BODIES[creepObj.body](this.taskInfo.sourceAmt, this.sectorName).body
 
-					let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
+					let succeeded = Imperium.sectors[this.sectorName].addCreep({
+						'creepName': 	creepName,
+						'creepBody':	creepBody,
+						'memObject':	memObject
+					})
 					if (succeeded) {
 						this.creeps[creepName].status = 1
 					}
@@ -324,13 +334,17 @@ class MINING extends Task {
 					]]
 					let memObject = {
 						'taskID':	this.id,
-						'home':		this.room,
+						'home':		this.sectorName,
 						'stack':	stateStack
 					}
 
-					let creepBody = MINING.BODIES[creepObj.body](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.room).body
+					let creepBody = MINING.BODIES[creepObj.body](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.sectorName).body
 
-					let succeeded = Game.rooms[this.room].spawnCreep(creepName, creepBody, memObject)
+					let succeeded = Imperium.sectors[this.sectorName].addCreep({
+						'creepName': 	creepName,
+						'creepBody':	creepBody,
+						'memObject':	memObject
+					})
 					if (succeeded) {
 						this.creeps[creepName].status = 1
 					}
@@ -341,10 +355,10 @@ class MINING extends Task {
 	checkStructures() {
 		for (let idx in this.structures) {
 			let structureObj = this.structures[idx]
+			let posObj = RoomPosition.parse(structureObj.posStr)
 
 			// Structure shouldn't exist
 			if (structureObj.status == 1) {
-				let posObj = RoomPosition.parse(structureObj.posStr)
 				let conSiteStatus = Game.rooms[this.room].createConstructionSite(posObj, structureObj.structureType)
 				let allowedReturns = [0, -7]
 				if (allowedReturns.includes(conSiteStatus)) {
@@ -353,7 +367,7 @@ class MINING extends Task {
 			}
 			// Structure should exists
 			else if (structureObj.status == 0) {
-				let structureAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_STRUCTURES), s => s.structureType == structureObj.structureType)
+				let structureAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_STRUCTURES, posObj), s => s.structureType == structureObj.structureType)
 				if (_.isUndefined(structureAtPos)) {
 					this.structures[idx].status = 1
 				}
@@ -366,7 +380,7 @@ class MINING extends Task {
 					this.structures[idx].status = 0
 				}
 				else {
-					let conSiteAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_CONSTRUCTION_SITES, posObj), s => s.structureType == sturctureObj.structureType)
+					let conSiteAtPos = _.find(Game.rooms[this.room].lookForAt(LOOK_CONSTRUCTION_SITES, posObj), s => s.structureType == structureObj.structureType)
 					if (_.isUndefined(conSiteAtPos)) {
 						this.structures[idx].status = 1
 					}
