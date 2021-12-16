@@ -3,7 +3,7 @@ Creep.prototype.run = function() {
 		return
 	}
 	
-	this.taskInfo = Game.rooms[this.memory.home].tasks[this.memory.taskID].taskInfo
+	this.task = Game.rooms[this.memory.home].tasks[this.memory.taskID]
 	this.invokeState()
 }
 
@@ -23,6 +23,7 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 			let allowedStructures = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION]
 			let targetStructure = _.find(targetRoom.find(FIND_MY_STRUCTURES), s => allowedStructures.includes(s.structureType) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
 
+			this.pushState('WAIT', {until: Game.time + 1})
 			this.pushState('UNLOAD', {posStr: RoomPosition.serialize(targetStructure.pos), resource: RESOURCE_ENERGY})
 			return
 		}
@@ -30,11 +31,13 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 		// Check to see if we can build
 		let constructionSites = targetRoom.find(FIND_CONSTRUCTION_SITES)
 		if (constructionSites.length > 0) {
+			this.pushState('WAIT', {until: Game.time + 1})
 			this.pushState('BUILD', {posStr: RoomPosition.serialize(constructionSites[0].pos)})
 			return
 		} 
 
 		// Otherwise, toss energy in controller
+		this.pushState('WAIT', {until: Game.time + 1})
 		this.pushState('UPGRADE', {targetRoomName: targetRoomName})
 		return
 	}
@@ -78,14 +81,14 @@ Creep.prototype.STATE_MINE = function(scope) {
 		return
 	}
 	else {
-		let minePosObj = RoomPosition.parse(minePosStr)
+		let minePosObj = RoomPosition.parse(sourcePosStr)
 		let mineObj = _.first(minePosObj.lookFor(LOOK_SOURCES))
 		
 		// If source is empty ..
 		if (mineObj.energy == 0) {
 			// Are we empty?
-			if (self.store.getUsedCapacity() == 0) {
-				self.pushState('WAIT', {until: Game.time + source.ticksToRegeneration})
+			if (this.store.getUsedCapacity() == 0) {
+				this.pushState('WAIT', {until: Game.time + source.ticksToRegeneration})
 				return
 			}
 
@@ -107,6 +110,15 @@ Creep.prototype.STATE_MINE = function(scope) {
 		}
 		// .. otherwise ..
 		else {
+			// Are we full?
+			if (this.store.getFreeCapacity(RESOURCE_ENERGY) == 0) {
+				// Check for a construction site at our feet
+				let conSites = this.pos.findInRange(FIND_MY_CONSTRUCTION_SITES, 3)
+				if (conSites.length > 0) {
+					let buildAction = this.build(_.first(conSites))
+					return
+				}
+			}
 			let harvestAction = this.harvest(mineObj)
 		}
 	}
