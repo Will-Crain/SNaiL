@@ -6,4 +6,6 @@ module.exports.loop = function() {
 	Imperium.load()
 	Imperium.run()
 	Imperium.save()
+	
+	Imperium.checkForSectors()
 }
