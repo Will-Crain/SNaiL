@@ -19,25 +19,35 @@ RoomPosition.parse = function(serPos) {
 	return new RoomPosition(x, y, name)
 }
 
-RoomPosition.prototype.getAdjacent = function(checkStructures = false) {
+RoomPosition.prototype.getAdjacent = function(scope) {
+	let {diagonals=true, serialize=true, checkStructures=false, checkTerrain=true} = scope
 	let targetRoom = Game.rooms[this.roomName]
 		
 	let terrain = targetRoom.getTerrain()
-	let outStrArr = []
+	let outArr = []
 		
 	for (let i in DIRECTIONS) {
+		if (i%2 == 0 && diagonals==false) {
+			continue
+		}
+		
 		let [dx, dy] = DIRECTIONS[i]
 		
 		if (checkStructures == false) {
 			let terr = terrain.get(this.x+dx, this.y+dy)
-			if (terr !== TERRAIN_MASK_WALL) {
-				outStrArr.push(RoomPosition.serialize(this.add(dx, dy)))
+			if ( !checkTerrain || (checkTerrain && terr !== TERRAIN_MASK_WALL)) {
+				if (serialize) {
+					outArr.push(RoomPosition.serialize(this.add(dx, dy)))
+				}
+				else {
+					outArr.push(this.add(dx, dy))
+				}
 			}
 		}
 		
 	}
 	
-    return outStrArr
+    return outArr
 }
 RoomPosition.prototype.add = function(x, y) {
 	if (this.x+x > 49 || this.y+y > 49 || this.x+x < 0 || this.y+y < 0) {
