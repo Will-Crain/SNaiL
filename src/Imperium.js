@@ -39,10 +39,10 @@ class Imperium {
 	}
 
 	// Expansion
-	addSector(coreRoomName) {
-		this.sectors[coreRoomName] = new Sector({
-			'coreRoomName':		coreRoomName,
-			'level':			Game.rooms[coreRoomName].controller.level
+	addSector(name) {
+		this.sectors[name] = new Sector({
+			'name':		name,
+			'level':			Game.rooms[name].controller.level
 		})
 	}
 
