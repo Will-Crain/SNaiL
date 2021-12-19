@@ -81,7 +81,6 @@ PathFinder.primitivePathfind = function(startPos, endPos, costMatrix=new PathFin
 
 				stack.push({score: tempScore, id: serializedAdjacent})
 				stack = _.sortBy(stack, 'score')
-				console.log(JSON.stringify(stack))
 			}
 		}
 	}

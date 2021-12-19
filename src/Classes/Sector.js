@@ -35,7 +35,6 @@ class Sector {
 		let roomObj = Game.rooms[this.name]
 		let roomTerrain = roomObj.getTerrain()
 
-		let roomGrid = new RoomGrid()
 		let distanceWalls = new PathFinder.CostMatrix
 		let distanceExits = new PathFinder.CostMatrix
 		let distanceWallsExits = new PathFinder.CostMatrix

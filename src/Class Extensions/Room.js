@@ -16,7 +16,6 @@ Room.prototype.run = function() {
 
 //#region Spawning code
 
-// Create object hash with keys as creep names, separate from sortable list for actual queue (sorting purposes?)
 Room.prototype.saveSpawnQueue = function() {
 	this.memory.spawnQueue = this.spawnQueue
 }

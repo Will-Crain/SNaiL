@@ -3,8 +3,6 @@ global.IMPERIUM = require('Imperium')
 global.Sector = require('Sector')
 global.Task = require('Task')
 
-global.RoomGrid = require('RoomGrid')
-
 // Class extensions
 require('Creep')
 require('PathFinder')

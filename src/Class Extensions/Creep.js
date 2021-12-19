@@ -157,13 +157,28 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		// .. find an object to take from
 		let targetObj = _.find(posObj.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacitY(resource) > 0)
 		if (!targetObj) {
-			if (canPop) {
-				this.popState()
+			// .. check the floor?
+			let floorRes = _.find(posObj.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
+
+			if (!floorRes) {
+				if (canPop) {
+					this.popState()
+					return
+				}
+
+				this.pushState('WAIT', {until: Game.time + 1})
 				return
 			}
 
-			this.pushState('WAIT', {until: Game.time + 1})
-			return
+			this.pickup(floorRes)
+			if (_.isUndefined(unloadPosStr)) {
+				this.popState()
+				return
+			}
+			else {
+				this.pushState('UNLOAD', {posSTr: unloadPosStr, resource: resource})
+				return
+			}
 		}
 		else {
 			let transaction = this.withdraw(targetObj, resource)
