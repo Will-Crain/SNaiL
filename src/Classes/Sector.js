@@ -17,19 +17,26 @@ class Sector {
 
 	// Setup
 	setup() {
-		// let coreRoom = Game.rooms[this.name]
-		// let sources = coreRoom.find(FIND_SOURCES)
-		// for (let sourceIdx in sources) {
-		// 	let targetSource = sources[sourceIdx]
+		let sources = Game.rooms[this.room].find(FIND_SOURCES)
+		for (let sourceIdx in sources) {
+			let targetSource = sources[sourceIdx]
 
-		// 	let taskInfo = {
-		// 		'sourceID':		targetSource.id,
-		// 		'sourcePos':	RoomPosition.serialize(targetSource.pos),
-		// 		'sourceAmt':	targetSource.energyCapacity,
-		// 		'path':			
-		// 	}
+			let fromPos = new RoomPosition(31, 24, 'W4N7')
+			let path = Game.rooms[this.room].findPath(fromPos, targetSource.pos, {ignoreCreeps: true})
 
-		// }
+			let taskInfo = {
+				sourceID:	targetSource.id,
+				sourcePos:	RoomPosition.serialize(targetSource.pos),
+				sourceAmt:	targetSource.energyCapacity,
+				path:		Room.serializePath(path),
+				pathLenght:	path.length,
+				standPos:	RoomPosition.serialize(new RoomPosition(_.last(path).x, _.last(path).y, targetSource.pos.roomName)),
+				originPos:	RoomPosition.serialize(fromPos)
+				
+			}
+
+			Imperium.sectors['W7N4'].addTask(new Task.MINING(this.name, Task.makeID(), taskInfo))
+		}
 	}
 	plan() {
 		let roomObj = Game.rooms[this.name]
@@ -185,7 +192,6 @@ class Sector {
 		return distanceWallsExits
 	}
 
-
 	run() {
 		this.runTasks()
 		this.runSpawns()
@@ -277,12 +283,72 @@ class Sector {
 	}
 
 	// Events
-	checkEvents() {
-		for (let eventID in this.events) {
-			if (this.events[eventID] != this.memory.events[eventID]) {
-				print(`Event\t${eventID}\t${this.name}`)
+	initEvents() {
+		let outObj = {
+			'RCL': {
+				1:		{},
+				2:		{prereq:'RCL.1'},
+				3:		{prereq:'RCL.2'},
+				4:		{prereq:'RCL.3'},
+				5:		{prereq:'RCL.4'},
+				6:		{prereq:'RCL.5'},
+				7:		{prereq:'RCL.6'},
+				8:		{prereq:'RCL.7'}
+			},
+			'EXTENSIONS': {
+				2:		{prereq: 'RCL.2'},
+				3:		{prereq: 'RCL.3'},
+				4:		{prereq: 'RCL.4'},
+				5:		{prereq: 'RCL.5'},
+				6:		{prereq: 'RCL.6'},
+				7:		{prereq: 'RCL.7'},
+				8:		{prereq: 'RCL.8'}
+			},
+			'TOWERS': {
+				3:		{prereq: 'RCL.3'},
+				5:		{prereq: 'RCL.5'},
+				7:		{prereq: 'RCL.7'},
+				8:		{prereq: 'RCL.8'}
+			},
+			'SPAWN': {
+				1:		{prereq: 'RCL.1'},
+				7:		{prereq: 'RCL.7'},
+				8:		{prereq: 'RCL.8'}
+			},
+			'MISC': {
+				'STORAGE':	{prereq:'RCL.4'},
+				'LINKS':	{prereq:'RCL.5'},
+				'TERMINAL':	{prereq:'RCL.6'},
+				'FACTORY':	{prereq:'RCL.7'},
+				'NUKER':	{prereq:'RCl.8'},
+				'OBSERVER':	{prereq:'RCL.8'}
+			},
+			'LABS': {
+				6:		{prereq: 'RCL.6'},
+				7:		{prereq: 'RCL.7'},
+				8:		{prereq: 'RCl.8'}
 			}
 		}
+		
+		Imperium.sectors[this.name].events = outObj
+	}
+	checkEvents() {
+
+	// 	// Check for RCL events
+	// 	if (Game.rooms[this.room].controller.level != Memory.Imperium.sectors[this.room].level) {
+	// 		let controllerLevel = Game.rooms[this.room].controller.level
+	// 		if (_.has(this.events['RCL'][controllerLevel], 'prereq')) {
+
+	// 		}
+	// 		else {
+
+	// 		}
+	// 	}
+	// 	for (let eventID in this.events) {
+	// 		if (this.events[eventID] != this.memory.events[eventID]) {
+	// 			print(`Event\t${eventID}\t${this.name}`)
+	// 		}
+	// 	}
 	}
 }
 

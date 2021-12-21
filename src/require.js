@@ -2,6 +2,7 @@
 global.IMPERIUM = require('Imperium')
 global.Sector = require('Sector')
 global.Task = require('Task')
+global.CreepBody = require('CreepBody')
 
 // Class extensions
 require('Creep')
