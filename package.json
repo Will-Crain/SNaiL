@@ -11,5 +11,10 @@
   "bugs": {
     "url": "https://github.com/EngineerYo/SNaiL/issues"
   },
-  "homepage": "https://github.com/EngineerYo/SNaiL#readme"
+  "homepage": "https://github.com/EngineerYo/SNaiL#readme",
+  "devDependencies": {
+    "grunt-contrib-clean": "^2.0.0",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-rsync": "^3.0.0"
+  }
 }
