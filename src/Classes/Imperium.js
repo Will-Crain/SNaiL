@@ -1,5 +1,5 @@
 class Imperium {
-	constructor(scope) {
+	constructor(scope={}) {
 		let {sectors={}, inquisitors={}} = scope
 
 		this.sectors = sectors
@@ -42,7 +42,7 @@ class Imperium {
 	addSector(name) {
 		this.sectors[name] = new Sector({
 			'name':		name,
-			'level':			Game.rooms[name].controller.level
+			'level':	Game.rooms[name].controller.level
 		})
 	}
 
@@ -52,6 +52,7 @@ class Imperium {
 		for (let roomIdx in ownedRooms) {
 			if (!_.has(this.sectors, ownedRooms[roomIdx])) {
 				this.addSector(ownedRooms[roomIdx].name)
+				this.sectors[ownedRooms[roomIdx].name].init()
 			}
 		}
 	}

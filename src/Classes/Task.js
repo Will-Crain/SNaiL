@@ -7,10 +7,6 @@ class Task {
 		})
 	}
 
-	static makeID() {
-		return `${Math.random().toString(36).slice(2, 11)}`
-	}
-
 	serialize() {
 
 	}
@@ -28,8 +24,8 @@ class MINING extends Task {
 		str originPos		Serialized origin position (storage, spawn, etc)
 	}
 	*/
-	constructor (scope) {
-		let {sectorName, id, taskInfo, creeps={}, structures={}} = scope
+	constructor (scope={}) {
+		let {sectorName, id=makeID(), taskInfo={}, creeps={}, structures={}} = scope
 		super()
 
 		this.sectorName = sectorName
@@ -40,74 +36,87 @@ class MINING extends Task {
 
 		this.type = 'MINING'
 	}
-	getCreeps(type, scope) {
-		// let sectorFlags = Imperium.sectors[this.sectorName].flags
+	getCreeps(type, scope={}) {
 		let coreRoom = Game.rooms[this.sectorName]
+		console.log(Game.rooms[this.sectorName], this.sectorName)
 		let coreRoomCapacity = coreRoom.energyCapacityAvailable
 
 		let requiredParts = new CreepBody()
-		let numCreeps = 0
+		let numCreeps = 1
 
-		let perTarget, targetPart, maxTargetPart, maxCreeps
-
+		let [perTarget, targetPart, maxTargetPart, maxCreeps] = [0, '', 0, 0]
 		switch (type) {
 			case MINING.BODIES.MINER:
 				let {resourceAmt=3000, timeToMine=300, resource=RESOURCE_ENERGY} = scope
 
 				targetPart = WORK
-				maxTargetPart = resourceAmt / MINING.lookup[resource] / timeToMine
+				maxTargetPart = Math.ceil(resourceAmt / MINING.lookup[resource] / timeToMine)
 				
-				let perTarget = {
+				perTarget = {
 					[CARRY]:	0,
 					[MOVE]:		1/4
 				}
 
-				let maxCreeps = RoomPosition.parse(this.sourcePos).getAdjacent({checkTerrain: true, serialized: true}).length
+				let roomPos = RoomPosition.parse(this.taskInfo.sourcePos)
+				maxCreeps = roomPos.getAdjacent({checkTerrain: true, serialized: true}).length
+				break
+
 			case MINING.BODIES.HAULER:
-				let {actualPerSecond, pathLength} = scope
-
+				let {actualPerTick, pathLength} = scope
 				targetPart = CARRY
-				maxTargetPart = ((2 * pathLength) * actualPerSecond ) / CARRY_CAPACITY
-
+				maxTargetPart = Math.ceil(((2 * pathLength) * actualPerTick) / CARRY_CAPACITY)
 				perTarget = {
 					[MOVE]:		1
 				}
 
-				let maxCreeps = 10
-
-
-			requiredParts.set(targetPart, maxTargetPart)
-			for (let part in perTarget) {
-				requiredParts.set(part, Math.ceil(perTarget[part]*maxTargetPart))
-			}
-
-			let solved = false
-			while (!solved) {
-
-				if (requiredParts.cost() > coreRoomCapacity || requiredParts.invalid) {
-					numCreeps += 1
-				}
-				let newParts = {
-					'target':	Math.ceil(maxTargetPart/numCreeps)
-				}
-				for (let part in perTarget) {
-					newParts[part] = Math.ceil(maxTargetPart*perTarget[part]/numCreeps)
-				}
-			
-				requiredParts = new CreepBody().set(WORK, newWork).set(MOVE, newMove).set(CARRY, newCarry)
-
-				if (!requiredParts.invalid) {
-					solved = true
-				}
-			}
-
-			let outObj = {num: Math.min(maxCreeps, numCreeps), body: requiredParts}
-			return outObj
+				maxCreeps = 10
+				break
 		}
+
+		requiredParts.set(targetPart, maxTargetPart)
+		for (let part in perTarget) {
+			requiredParts.set(part, Math.ceil(perTarget[part]*maxTargetPart))
+		}
+
+		let solved = false
+		while (!solved) {
+
+			let newParts = {
+				[targetPart]:	Math.ceil(maxTargetPart/numCreeps)
+			}
+			for (let part in perTarget) {
+				newParts[part] = Math.ceil(maxTargetPart*perTarget[part]/numCreeps)
+			}
+		
+			requiredParts = new CreepBody()
+			for (let part in newParts) {
+				requiredParts.set(part, newParts[part])
+			}
+
+			if (!requiredParts.invalid && requiredParts.cost() < coreRoomCapacity) {
+				solved = true
+				break
+			}
+			else {
+				numCreeps += 1
+			}
+		}
+
+		let outObj = {num: Math.min(maxCreeps, numCreeps), body: requiredParts}
+		return outObj
 	}
 
+	run() {
+		return true
+	}
 	init() {
-		//
+		let miners = this.getCreeps(MINING.BODIES.MINER, {})
+		let haulers = this.getCreeps(MINING.BODIES.HAULER, {actualPerTick: 10, pathLength: this.taskInfo.pathLength})
+
+		
+		console.log(JSON.stringify(miners))
+		console.log(JSON.stringify(haulers))
+		// return {miners: miners, haulers: haulers}
 	}
 }
 
@@ -149,7 +158,7 @@ class GATHERING extends Task {
 		let adjacentPositions = roomPos.getAdjacent().length
 		
 		for (i = 0; i < adjacentPositions; i += 1) {
-			let creepName = Task.makeID()
+			let creepName = makeID()
 			let creepBody = 'GATHERER'
 
 			this.creeps[creepName] = {
@@ -351,7 +360,7 @@ class GATHERING extends Task {
 
 // 	initCreeps() {
 // 		// Make miner
-// 		let minerName = Task.makeID()
+// 		let minerName = makeID()
 // 		this.creeps[minerName] = {
 // 			'body':		'MINER',
 // 			'status': 	0
@@ -360,7 +369,7 @@ class GATHERING extends Task {
 // 		// // Make hauler(s)
 // 		let {count, body} = MINING.BODIES['HAULER'](this.taskInfo.sourceAmt, this.taskInfo.pathLength, this.sectorName)
 // 		for (let i = 0; i < count; i+=1) {
-// 			let haulerName = Task.makeID()
+// 			let haulerName = makeID()
 // 			this.creeps[haulerName] = {
 // 				'body':		'HAULER',
 // 				'status':	0

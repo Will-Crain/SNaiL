@@ -12,3 +12,7 @@ global.DIRECTIONS = {
 global.MAX_STACK_LENGTH = 100
 
 global.BODY_ORDER = [TOUGH, MOVE, CARRY, WORK, RANGED_ATTACK, ATTACK, CLAIM, HEAL]
+
+global.makeID = function() {
+	return `${Math.random().toString(36).slice(2, 11)}`
+}

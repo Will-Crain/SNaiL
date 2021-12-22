@@ -16,13 +16,13 @@ class Sector {
 	}
 
 	// Setup
-	setup() {
-		let sources = Game.rooms[this.room].find(FIND_SOURCES)
+	init() {
+		let sources = Game.rooms[this.name].find(FIND_SOURCES)
 		for (let sourceIdx in sources) {
 			let targetSource = sources[sourceIdx]
 
-			let fromPos = new RoomPosition(31, 24, 'W4N7')
-			let path = Game.rooms[this.room].findPath(fromPos, targetSource.pos, {ignoreCreeps: true})
+			let fromPos = new RoomPosition(31, 24, this.name)
+			let path = Game.rooms[this.name].findPath(fromPos, targetSource.pos, {ignoreCreeps: true})
 
 			let taskInfo = {
 				sourceID:	targetSource.id,
@@ -35,7 +35,9 @@ class Sector {
 				
 			}
 
-			Imperium.sectors['W7N4'].addTask(new Task.MINING(this.name, Task.makeID(), taskInfo))
+			console.log(`NAME\t${this.name}`)
+			let newTask = new Task.MINING(this.name, makeID(), taskInfo)
+			this.addTask(newTask)
 		}
 	}
 	plan() {

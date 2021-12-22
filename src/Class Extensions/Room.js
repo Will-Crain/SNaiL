@@ -106,7 +106,7 @@ Room.prototype.setupGatherTasks = function() {
 
 		this.addTask(new Task.GATHERING({
 			'room': 	this.name,
-			'id':		Task.Task.makeID(),
+			'id':		makeID(),
 			'taskInfo':	taskInfo
 		}))
 	}
@@ -134,7 +134,7 @@ Room.prototype.setupMiningTasks = function() {
 		
 		this.addTask(new Task.MINING({
 			'room': 	this.name,
-			'id':		Task.Task.makeID(),
+			'id':		makeID(),
 			'taskInfo':	taskInfo
 		}))
 	}
