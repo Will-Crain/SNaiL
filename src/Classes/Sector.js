@@ -11,8 +11,14 @@ class Sector {
 
 		this.eventFlags = eventFlags
 		this.level = level
-
 		this.setup = setup
+
+		this.loadTasks()
+		return this
+	}
+
+	updateMemory() {
+		Memory.Imperuim.sectors[this.name] = this
 	}
 
 	// Setup
@@ -198,7 +204,7 @@ class Sector {
 		this.runTasks()
 		this.runSpawns()
 
-		this.checkEvents()
+		// this.checkEvents()
 
 		// this.draw()
 	}
@@ -245,11 +251,12 @@ class Sector {
 		}
 
 		let creepObj = {
-			'body':		creepBody,
-			'memory':	memObject
+			body:		creepBody,
+			memory:		memObject,
+			name:		creepName
 		}
 
-		this.spawnQueue[creepName] = creepObj
+		this.spawnQueue.push(creepObj)
 		this.spawnHash[creepName] = 0
 
 		return true
@@ -266,7 +273,7 @@ class Sector {
 			let spawner = availableSpawns[spawnIdx]
 
 			// Make sure we're not processing more creeps than we have in the queue
-			if (spawnQueue.length <= spawnIdx) {
+			if (this.spawnQueue.length <= spawnIdx) {
 				return
 			}
 
@@ -278,80 +285,25 @@ class Sector {
 				console.log(`${targetCreep.name} can't spawn in ${this.name}\t${spawnCheck}`)
 			}
 
+			console.log(`Trying to spawn ${targetCreep.name}`)
+
 			// Remove from spawn hash and queue
 			delete this.spawnQueue[spawnIdx]
-			delete this.spawnHash[creepObj.name]
+			delete this.spawnHash[targetCreep.name]
 		}
 	}
 
-	// Events
-	initEvents() {
-		let outObj = {
-			'RCL': {
-				1:		{},
-				2:		{prereq:'RCL.1'},
-				3:		{prereq:'RCL.2'},
-				4:		{prereq:'RCL.3'},
-				5:		{prereq:'RCL.4'},
-				6:		{prereq:'RCL.5'},
-				7:		{prereq:'RCL.6'},
-				8:		{prereq:'RCL.7'}
-			},
-			'EXTENSIONS': {
-				2:		{prereq: 'RCL.2'},
-				3:		{prereq: 'RCL.3'},
-				4:		{prereq: 'RCL.4'},
-				5:		{prereq: 'RCL.5'},
-				6:		{prereq: 'RCL.6'},
-				7:		{prereq: 'RCL.7'},
-				8:		{prereq: 'RCL.8'}
-			},
-			'TOWERS': {
-				3:		{prereq: 'RCL.3'},
-				5:		{prereq: 'RCL.5'},
-				7:		{prereq: 'RCL.7'},
-				8:		{prereq: 'RCL.8'}
-			},
-			'SPAWN': {
-				1:		{prereq: 'RCL.1'},
-				7:		{prereq: 'RCL.7'},
-				8:		{prereq: 'RCL.8'}
-			},
-			'MISC': {
-				'STORAGE':	{prereq:'RCL.4'},
-				'LINKS':	{prereq:'RCL.5'},
-				'TERMINAL':	{prereq:'RCL.6'},
-				'FACTORY':	{prereq:'RCL.7'},
-				'NUKER':	{prereq:'RCl.8'},
-				'OBSERVER':	{prereq:'RCL.8'}
-			},
-			'LABS': {
-				6:		{prereq: 'RCL.6'},
-				7:		{prereq: 'RCL.7'},
-				8:		{prereq: 'RCl.8'}
-			}
+	loadTasks() {
+		for (let taskName in Memory.Imperium.sectors[this.name]) {
+			console.log(taskName)
+			let taskObj = Memory.Imperium.sectors[this.name].tasks[taskName]
+			console.log(JSON.stringify(taskObj))
+			Imperium.sectors[this.name].tasks[taskName] = new Task[taskObj.type](taskObj)
 		}
-		
-		Imperium.sectors[this.name].events = outObj
 	}
-	checkEvents() {
 
-	// 	// Check for RCL events
-	// 	if (Game.rooms[this.room].controller.level != Memory.Imperium.sectors[this.room].level) {
-	// 		let controllerLevel = Game.rooms[this.room].controller.level
-	// 		if (_.has(this.events['RCL'][controllerLevel], 'prereq')) {
-
-	// 		}
-	// 		else {
-
-	// 		}
-	// 	}
-	// 	for (let eventID in this.events) {
-	// 		if (this.events[eventID] != this.memory.events[eventID]) {
-	// 			print(`Event\t${eventID}\t${this.name}`)
-	// 		}
-	// 	}
-	}
 }
-
+Sector.fromMemory = function(sectorMem) {
+	return new Sector(sectorMem)
+}
 module.exports = Sector

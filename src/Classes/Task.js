@@ -6,10 +6,9 @@ class Task {
 			})
 		})
 	}
-
-	serialize() {
-
-	}
+}
+global.makeID = function() {
+	return `${Math.random().toString(36).slice(2, 11)}`
 }
 
 class MINING extends Task {
@@ -24,8 +23,8 @@ class MINING extends Task {
 		str originPos		Serialized origin position (storage, spawn, etc)
 	}
 	*/
-	constructor (scope={}) {
-		let {sectorName, id=makeID(), taskInfo={}, creeps={}, structures={}} = scope
+	constructor (sectorName, id, taskInfo={}, scope={}) {
+		let {creeps={}, structures={}} = scope
 		super()
 
 		this.sectorName = sectorName
@@ -37,8 +36,8 @@ class MINING extends Task {
 		this.type = 'MINING'
 	}
 	getCreeps(type, scope={}) {
+		// let sectorFlags = Imperium.sectors[this.sectorName].flags
 		let coreRoom = Game.rooms[this.sectorName]
-		console.log(Game.rooms[this.sectorName], this.sectorName)
 		let coreRoomCapacity = coreRoom.energyCapacityAvailable
 
 		let requiredParts = new CreepBody()
@@ -102,21 +101,86 @@ class MINING extends Task {
 			}
 		}
 
+
 		let outObj = {num: Math.min(maxCreeps, numCreeps), body: requiredParts}
 		return outObj
 	}
 
 	run() {
+		this.spawnCreeps()
+		this.runCreeps()
 		return true
 	}
+	runCreeps() {
+		for (let creepName in this.creeps) {
+			let creepObj = Game.creeps[creepName]
+			if (!_.isUndefined(creepObj)) {
+				creepObj.run()
+			}
+		}
+	}
+	spawnCreeps() {
+		for (let creepName in this.creeps) {
+			let creepObj = this.creeps[creepName]
+			if (!_.has(Game.creeps, creepName) && creepObj.status == 0) {
+				let succeeded = Imperium.sectors[this.sectorName].addCreep({
+					creepName:		creepName,
+					creepBody:		this.creeps[creepName].body,
+					memObject:		this.creeps[creepName].memObject
+				})
+				if (succeeded) {
+					this.creeps[creepName].status = 1
+				}
+			}
+		}
+	}
+
+
 	init() {
+		this.initCreeps()
+	}
+	initCreeps() {
 		let miners = this.getCreeps(MINING.BODIES.MINER, {})
 		let haulers = this.getCreeps(MINING.BODIES.HAULER, {actualPerTick: 10, pathLength: this.taskInfo.pathLength})
 
+		for (let i = 0; i < miners.num; i++) {
+			let creepName = makeID()
+			let stateStack = [[
+				'MINE', {
+					sourcePosStr:	this.taskInfo.sourcePos,
+					standPosStr:	this.taskInfo.standPos
+				}
+			]]
+			let memObject = {
+				taskID:		this.id,
+				home:		this.name,
+				stack:		stateStack
+			}
+			this.creeps[creepName] = {body: miners.body, status: 0}
+		}
 		
-		console.log(JSON.stringify(miners))
-		console.log(JSON.stringify(haulers))
-		// return {miners: miners, haulers: haulers}
+		for (let i = 0; i < haulers.num; i++) {
+			let creepName = makeID()
+			let stateStack = [[
+				'LOAD', {
+					posStr:			this.taskInfo.standPos,
+					resource:		RESOURCE_ENERGY,
+					canPop: 		false,
+					unloadPosStr:	this.taskInfo.originPos
+				}
+			]]
+			let memObject = {
+				taskID:		this.id,
+				home:		this.name,
+				stack:		stateStack
+			}
+			this.creeps[creepName] = {body: haulers.body, memObject: memObject, status: 0}
+		}
+	}
+
+	update() {
+		this.creeps = {}
+		this.init()
 	}
 }
 
@@ -503,8 +567,8 @@ class GATHERING extends Task {
 // }
 
 MINING['BODIES'] = {
-	'MINER': 0,
-	'HAULER': 1
+	'MINER': 'MINER',
+	'HAULER': 'HAULER'
 }
 MINING['lookup'] = {
 	[RESOURCE_ENERGY]:		HARVEST_POWER,
