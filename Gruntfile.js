@@ -1,6 +1,31 @@
 // Author: Screeps user tedivm. thank you!!
 module.exports = function(grunt) {
 
+	// your `.screeps.json` file should be read like:
+	/*
+	{
+		"email": 	"yourEmail",
+		"password":	"yourScreepsPassword",
+		"token": 	"anAuthenticatorTokenFromScreeps",
+		"branch": 	"theBranchYouWantToCommitTo",
+
+		"private_directory":	"C:/Users/yourUser/AppData/Local/Screeps/scripts/127_0_0_1___21025"
+	}
+	Make sure your .screeps.json file is in gitignore, and these grunt tasks create
+	a directory 'dist' in the project folder, but it's just a flattened version of
+	your code to be shipped. I also recommend adding `dist` to your gitignore
+
+	My project is setup as follows:
+	SNaiL
+		dist
+		src
+			all the things src contains; you can see it on github repo
+		.gitignore
+		.screeps.json
+		grunt-screeps.js
+		Gruntfile.js
+	*/
+
 	var config = require('./.screeps.json')
 	var branch = grunt.option('branch') || config.branch
 	var email = grunt.option('email') || config.email
@@ -24,8 +49,9 @@ module.exports = function(grunt) {
 			}
 		},
 
-		// Remove all files from the dist folder.
+		// Remove all files from ..
 		clean: {
+			// force must be on so it can clear files out of directories that aren't this one (for the private server)
 			options: {
 				force: true
 			},
@@ -45,6 +71,7 @@ module.exports = function(grunt) {
 					flatten: true
 				}]
 			},
+			// Copies flattened game code to my private server directory
 			private: {
 				files: [{
 					expand: true,
