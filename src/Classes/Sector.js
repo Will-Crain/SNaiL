@@ -240,7 +240,7 @@ class Sector {
 
 	// Spawning
 	addCreep(scope) {
-		let {creepName, creepBody, memObject} = scope
+		let {creepName, creepBody, memObject, priority} = scope
 
 		// Hash exists for quick lookups
 		if (_.has(this.spawnHash, creepName)) {
@@ -252,7 +252,8 @@ class Sector {
 		let creepObj = {
 			body:		creepBody,
 			memory:		memObject,
-			name:		creepName
+			name:		creepName,
+			priority:	priority
 		}
 
 		this.spawnQueue.push(creepObj)

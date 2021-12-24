@@ -64,7 +64,6 @@ class MINING extends Task {
 				let {actualPerTick, pathLength} = scope
 				targetPart = CARRY
 				maxTargetPart = Math.ceil(((2 * pathLength) * actualPerTick) / CARRY_CAPACITY)
-				console.log(maxTargetPart, pathLength, actualPerTick)
 				perTarget = {
 					[MOVE]:		1
 				}
@@ -126,7 +125,8 @@ class MINING extends Task {
 				let succeeded = Imperium.sectors[this.sectorName].addCreep({
 					creepName:		creepName,
 					creepBody:		this.creeps[creepName].body,
-					memObject:		this.creeps[creepName].memObject
+					memObject:		this.creeps[creepName].memObject,
+					priority:		this.creeps[creepName].priority
 				})
 				if (succeeded) {
 					this.creeps[creepName].status = 1
@@ -137,10 +137,6 @@ class MINING extends Task {
 
 
 	init() {
-		let sourcePosObj = JSON.parse(this.taskInfo.sourcePos)
-		let standPositions = sourcePosObj.getAdjacent()
-		this.standPositions = standPositions
-
 		this.initCreeps()
 	}
 	initCreeps() {
@@ -182,7 +178,8 @@ class MINING extends Task {
 					posStr:			this.taskInfo.standPos,
 					resource:		RESOURCE_ENERGY,
 					canPop: 		false,
-					unloadPosStr:	this.taskInfo.originPos
+					unloadPosStr:	this.taskInfo.originPos,
+					checkAround:	this.taskInfo.sourcePos
 				}
 			]]
 			let memObject = {
