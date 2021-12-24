@@ -201,6 +201,14 @@ class Sector {
 
 	run() {
 		let satisfaction = this.runTasks()
+		if (satisfaction == 0) {
+			// Do we already have a SCOUTING task?
+			let scoutTask = _.find(this.tasks, s => s.type == 'SCOUTING')
+			// if (!scoutTask) {
+			// 	// Lets make a scout task
+			// 	let newTask = 
+			// }
+		}
 		this.runSpawns()
 
 		// this.checkEvents()

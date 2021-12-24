@@ -98,7 +98,7 @@ Creep.prototype.STATE_MINE = function(scope) {
 		if (mineObj.energy == 0) {
 			// Are we empty?
 			if (this.store.getUsedCapacity() == 0) {
-				this.pushState('WAIT', {until: Game.time + source.ticksToRegeneration})
+				this.pushState('WAIT', {until: Game.time + mineObj.ticksToRegeneration})
 				return
 			}
 
