@@ -41,16 +41,8 @@ class Imperium {
 	}
 
 	run() {
-
 		let sectorKeys = _.keys(this.sectors)
 		if (sectorKeys.length == 0) {
-			// we've just respawned!
-
-			delete Memory.Imperium
-			delete Memory.creeps
-
-			this.save()
-
 			this.checkForSectors()
 		}
 

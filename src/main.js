@@ -1,16 +1,33 @@
 require('require')
 
-let imperium = new Imperium(Memory.Imperium || {})
-imperium.load()
+let imperium
+if (hasRespawned()) {
+	delete Memory.Imperium
+	delete Memory.creeps
+
+	imperium = new Imperium({})
+	imperium.save()
+	imperium.checkForSectors()
+}
+else {
+	imperium = new Imperium(Memory.Imperium)
+	imperium.load()
+}
 
 module.exports.loop = function() {
-    if (hasRespawned()) {
+	hasRespawned()
+	
+    if (Game.time < Memory.respawnTick + 2) {
         delete Memory.Imperium
         delete Memory.creeps
 		
         imperium = new Imperium({})
-		
-        imperium.load()
+        imperium.save()
+    }
+    else if (Game.time == Memory.respawnTick + 2) {
+        console.log('Respawn complete!')
+		Imperium.sectors = {}
+		Imperium.checkForSectors()
     }
 
 	imperium.run()
