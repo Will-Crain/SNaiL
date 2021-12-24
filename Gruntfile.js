@@ -29,14 +29,13 @@ module.exports = function(grunt) {
 			options: {
 				force: true
 			},
-			screeps: ['dist/*'],
+			default: ['dist/*'],
 			private: [`${private_directory}/${branch}/*`]
 		},
 
-		// Copy a flattened src	 to dist
 		copy: {
-			// Pushes the game code to the dist folder so it can be modified before being send to the screeps server.
-			screeps: {
+			// Copies and flattens project to dist/ so it can be shipped
+			default: {
 				files: [{
 					expand: true,
 					cwd: 'src/',
@@ -49,7 +48,7 @@ module.exports = function(grunt) {
 			private: {
 				files: [{
 					expand: true,
-					cwd: 'src/',
+					cwd: 'dist/',
 					src: '**',
 					dest: `${private_directory}/${branch}/`,
 					filter: 'isFile',
@@ -57,9 +56,24 @@ module.exports = function(grunt) {
 				}]
 			}
 		}
-
 	})
 
-	grunt.registerTask('default',	['clean:screeps', 'copy:screeps', 'screeps']);
-	grunt.registerTask('private',	['clean:private', 'copy:private']);
+	// This task creates our require file, requiring everything except main.js, 
+	// then truncates the file extension off
+	grunt.registerTask('makeRequireFile', function(directory='src/', dest='dist/') {
+		let outStr = ''
+		grunt.file.recurse(directory, function(path, rootDirectory, subDirectory, fileName) {
+			if (fileName != 'main.js') {
+				let name = fileName.slice(0, fileName.length-3)
+				let requireString = `require('${name}')`
+				outStr += `${requireString}\n`
+			}
+		})
+
+		grunt.file.write(`${dest}/require.js`, outStr)
+	})
+
+	grunt.registerTask('default',	['clean', 'copy', 'makeRequireFile', 'screeps']);
+	grunt.registerTask('private',	['clean', 'clean:private', 'copy', 'makeRequireFile', 'copy:private']);
+	grunt.registerTask('test',		['clean', 'makeRequireFile'])
 }
