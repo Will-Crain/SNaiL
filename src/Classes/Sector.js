@@ -13,12 +13,7 @@ class Sector {
 		this.level = level
 		this.setup = setup
 
-		this.loadTasks()
 		return this
-	}
-
-	updateMemory() {
-		Memory.Imperuim.sectors[this.name] = this
 	}
 
 	// Setup
@@ -41,8 +36,11 @@ class Sector {
 				
 			}
 
-			console.log(`NAME\t${this.name}`)
-			let newTask = new Task.MINING(this.name, makeID(), taskInfo)
+			let newTask = new Task.MINING({
+				sectorName: this.name,
+				id:			makeID(),
+				taskInfo:	taskInfo
+			})
 			this.addTask(newTask)
 		}
 	}
@@ -229,15 +227,15 @@ class Sector {
 	}
 	runTasks() {
 		for (let taskID in this.tasks) {
-			let task = this.tasks[taskID]
+			let task = Imperium.sectors[this.name].tasks[taskID]
 
 			// Check to see if we've been initialized
-			if (!task.taskInfo.init) {
-				task.init()
-				task.taskInfo['init'] = true
+			if (!_.has(task.taskInfo, 'init')) {
+				Imperium.sectors[this.name].tasks[taskID].taskInfo['init'] = true
+				Imperium.sectors[this.name].tasks[taskID].init()
 			}
 
-			task.run()
+			Imperium.sectors[this.name].tasks[taskID].run()
 		}
 	}
 
@@ -283,6 +281,11 @@ class Sector {
 
 			if (illegalErrors.includes(spawnCheck)) {
 				console.log(`${targetCreep.name} can't spawn in ${this.name}\t${spawnCheck}`)
+				continue
+			}
+			let warnErrors = [-4, -6]
+			if (warnErrors.includes(spawnCheck)) {
+				continue
 			}
 
 			console.log(`Trying to spawn ${targetCreep.name}`)
@@ -292,18 +295,5 @@ class Sector {
 			delete this.spawnHash[targetCreep.name]
 		}
 	}
-
-	loadTasks() {
-		for (let taskName in Memory.Imperium.sectors[this.name]) {
-			console.log(taskName)
-			let taskObj = Memory.Imperium.sectors[this.name].tasks[taskName]
-			console.log(JSON.stringify(taskObj))
-			Imperium.sectors[this.name].tasks[taskName] = new Task[taskObj.type](taskObj)
-		}
-	}
-
 }
-Sector.fromMemory = function(sectorMem) {
-	return new Sector(sectorMem)
-}
-module.exports = Sector
+global.Sector = Sector

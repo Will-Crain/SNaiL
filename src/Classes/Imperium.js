@@ -9,8 +9,6 @@ class Imperium {
 			Memory.Imperium = {sectors, inquisitors}
 		}
 
-		global.Imperium = this
-		this.loadSectors()
 		return this
 	}
 
@@ -64,14 +62,6 @@ class Imperium {
 			}
 		}
 	}
-	loadSectors() {
-		for (let sectorName in Memory.Imperium.sectors) {
-			this.sectors[sectorName] = new Sector(Memory.Imperium.sectors[sectorName])
-		}
-	}
-}
-Imperium.fromMemory = function(memObject) {
-	return new Imperium(memObject)
 }
 
-module.exports = Imperium
+global.Imperium = Imperium

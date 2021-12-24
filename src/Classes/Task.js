@@ -7,9 +7,6 @@ class Task {
 		})
 	}
 }
-global.makeID = function() {
-	return `${Math.random().toString(36).slice(2, 11)}`
-}
 
 class MINING extends Task {
 	/* MINING taskInfo expects
@@ -23,8 +20,8 @@ class MINING extends Task {
 		str originPos		Serialized origin position (storage, spawn, etc)
 	}
 	*/
-	constructor (sectorName, id, taskInfo={}, scope={}) {
-		let {creeps={}, structures={}} = scope
+	constructor (scope={}) {
+		let {sectorName, id, taskInfo={}, creeps={}, structures={}} = scope
 		super()
 
 		this.sectorName = sectorName
@@ -156,7 +153,12 @@ class MINING extends Task {
 				home:		this.name,
 				stack:		stateStack
 			}
-			this.creeps[creepName] = {body: miners.body, status: 0}
+			let outObj = {
+				body: miners.body,
+				memObject: memObject,
+				status: 0
+			}
+			this.creeps[creepName] = outObj
 		}
 		
 		for (let i = 0; i < haulers.num; i++) {
@@ -174,7 +176,12 @@ class MINING extends Task {
 				home:		this.name,
 				stack:		stateStack
 			}
-			this.creeps[creepName] = {body: haulers.body, memObject: memObject, status: 0}
+			let outObj = {
+				body: haulers.body,
+				memObject: memObject,
+				status: 0
+			}
+			this.creeps[creepName] = outObj
 		}
 	}
 
@@ -589,7 +596,7 @@ GATHERING['BODIES'] = {
 	}
 }
 
-module.exports = {
+global.Task = {
 	Task: Task,
 	GATHERING:	GATHERING,
 	MINING: MINING
