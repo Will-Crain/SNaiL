@@ -16,10 +16,10 @@ else {
 
 module.exports.loop = function() {
 	hasRespawned()
-	if (Game.time < Memory.respawnTick + 1) {
+	if (Game.time < Memory.respawnTick + 2) {
 		return
 	}
-    else if (Game.time == Memory.respawnTick + 1) {
+    else if (Game.time == Memory.respawnTick + 2) {
         console.log('Respawn complete!')
 
 		global.Imperium = new Imperium()
