@@ -4,7 +4,6 @@ Creep.prototype.run = function() {
 	}
 	
 	this.task = Imperium.sectors[this.memory.home].tasks[this.memory.taskID]
-	this.say(`${this.memory.stack[0][0]}`)
 	this.invokeState()
 }
 
@@ -71,15 +70,26 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 Creep.prototype.STATE_MINE = function(scope) {
 	let {sourcePosStr, standPosStr} = scope
 	let standPosObj = RoomPosition.parse(standPosStr)
+	let sourcePosObj = RoomPosition.parse(sourcePosStr)
 
 	// Are we in the right room?
 	if (this.room.name != standPosObj.roomName) {
 		// cry
 	}
-	// Are we on the stand position?
-	else if (!this.pos.inRangeTo(standPosObj, 0)) {
-		this.pushState('MOVE', {posStr: standPosStr, range: 0})
+	// Are we near the stand position?
+	else if (this.pos.getRangeTo(sourcePosObj) > 2) {
+		this.pushState('MOVE', {posStr: standPosStr, range: 2})
 		return
+	}
+	// Can we stand on the stand position?
+	else if (this.pos.getRangeTo(sourcePosObj) == 2) {
+		let adjacentPositions = [standPosStr, ..._.filter(sourcePosObj.getAdjacent({}), s => s != standPosStr)]
+		for (let idx in adjacentPositions) {
+			let adjPosObj = RoomPosition.parse(adjacentPositions[idx])
+			if (!_.some(adjPosObj.look(), s => OBSTACLE_OBJECT_TYPES.includes(s.type))) {
+				this.pushState('MOVE', {posStr: adjacentPositions[idx], range: 0})
+			}
+		}
 	}
 	else {
 		let minePosObj = RoomPosition.parse(sourcePosStr)
@@ -143,7 +153,7 @@ Creep.prototype.STATE_MOVE = function(scope) {
 }
 
 Creep.prototype.STATE_LOAD = function(scope) {
-	let {posStr, resource, canPop=true, unloadPosStr} = scope
+	let {posStr, resource, canPop=true, unloadPosStr, checkAround} = scope
 	let posObj = RoomPosition.parse(posStr)
 
 	// If we're not in range ..
@@ -152,47 +162,65 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		return
 	}
 
-	// Otherwise, if we're empty ..
-	if (this.store.getUsedCapacity() == 0) {
 
-		// .. find an object to take from
-		let targetObj = _.find(posObj.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacitY(resource) > 0)
-		if (!targetObj) {
-			// .. check the floor?
-			let floorRes = _.find(posObj.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
-
-			if (!floorRes) {
-				if (canPop) {
-					this.popState()
-					return
+	// otherwise, find an object to take from
+	let targetObj = _.find(posObj.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacitY(resource) > 0)
+	if (targetObj) {
+		let transaction = this.withdraw(targetObj, resource)
+		if (_.isUndefiend(unloadPosStr)) {
+			this.popState()
+		}
+		else {
+			this.pushState('UNLOAD', {posStr: unloadPosStr, resource: resource})
+		}
+	}
+	else {
+		// get positions to check
+		let toCheck = [posStr]
+		if (checkAround) {
+			let adj = RoomPosition.parse(checkAround).getAdjacent()
+			for (let i in adj) {
+				if (!toCheck.includes(adj[i])) {
+					toCheck.push(adj[i])
 				}
-
-				this.pushState('WAIT', {until: Game.time + 1})
-				return
 			}
+		}
 
-			this.pickup(floorRes)
-			if (_.isUndefined(unloadPosStr)) {
-				this.popState()
-				return
+		// Actually do the checking
+		let targetPos, targetRes
+		for (let idx in toCheck) {
+			let checking = RoomPosition.parse(toCheck[idx])
+			let floorRes = _.find(checking.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
+			if (floorRes) {
+				targetPos = checking
+				targetRes = floorRes
+				break
+			}
+		}
+		// There were resources
+		if (targetPos) {
+			if (this.pos.inRangeTo(targetPos, 1)) {
+				this.pickup(targetRes)
+				
+				if (_.isUndefined(unloadPosStr)) {
+					this.popState()
+				}
+				else {
+					this.pushState('UNLOAD', {posStr: unloadPosStr, resource: resource})
+				}
 			}
 			else {
-				this.pushState('UNLOAD', {posSTr: unloadPosStr, resource: resource})
-				return
+				this.pushState('MOVE', {posStr: RoomPosition.serialize(targetPos), range: 1})
 			}
 		}
 		else {
-			let transaction = this.withdraw(targetObj, resource)
-			if (_.isUndefiend(unloadPosStr)) {
+			if (canPop) {
 				this.popState()
-				return
 			}
 			else {
-				this.pushState('UNLOAD', {posStr: unloadPosStr, resource: resource})
-				return
+				this.pushState('WAIT', {until: Game.time+2})
 			}
 		}
-		
 	}
 }
 Creep.prototype.STATE_UNLOAD = function(scope) {
