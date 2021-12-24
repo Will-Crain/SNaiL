@@ -64,6 +64,7 @@ class MINING extends Task {
 				let {actualPerTick, pathLength} = scope
 				targetPart = CARRY
 				maxTargetPart = Math.ceil(((2 * pathLength) * actualPerTick) / CARRY_CAPACITY)
+				console.log(maxTargetPart, pathLength, actualPerTick)
 				perTarget = {
 					[MOVE]:		1
 				}
@@ -136,12 +137,16 @@ class MINING extends Task {
 
 
 	init() {
+		let sourcePosObj = JSON.parse(this.taskInfo.sourcePos)
+		let standPositions = sourcePosObj.getAdjacent()
+		this.standPositions = standPositions
+
 		this.initCreeps()
 	}
 	initCreeps() {
 		let miners = this.getCreeps(MINING.BODIES.MINER, {})
-		console.log(miners.num, _.sum(miners.body, s => s == WORK))
-		let perTick = miners.num * _.sum(miners.body, s => s == WORK) * HARVEST_POWER
+		let perTick = miners.num * _.filter(miners.body, s => s == WORK).length * HARVEST_POWER
+		console.log(perTick)
 		let haulers = this.getCreeps(MINING.BODIES.HAULER, {actualPerTick: perTick, pathLength: this.taskInfo.pathLength})
 
 		let minerPriorityBase = 5

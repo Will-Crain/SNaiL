@@ -30,7 +30,7 @@ class Sector {
 				sourcePos:	RoomPosition.serialize(targetSource.pos),
 				sourceAmt:	targetSource.energyCapacity,
 				path:		Room.serializePath(path),
-				pathLenght:	path.length,
+				pathLength:	path.length,
 				standPos:	RoomPosition.serialize(new RoomPosition(_.last(path).x, _.last(path).y, targetSource.pos.roomName)),
 				originPos:	RoomPosition.serialize(fromPos)
 			}
