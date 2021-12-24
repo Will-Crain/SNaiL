@@ -106,7 +106,6 @@ class MINING extends Task {
 	run() {
 		this.spawnCreeps()
 		this.runCreeps()
-		return true
 	}
 	runCreeps() {
 		for (let creepName in this.creeps) {

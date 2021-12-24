@@ -23,7 +23,7 @@ class Sector {
 			let targetSource = sources[sourceIdx]
 
 			let fromPos = new RoomPosition(31, 24, this.name)
-			let path = Game.rooms[this.name].findPath(fromPos, targetSource.pos, {ignoreCreeps: true})
+			let path = Game.rooms[this.name].findPath(fromPos, targetSource.pos, {ignoreCreeps: true, range: 1})
 
 			let taskInfo = {
 				sourceID:	targetSource.id,
@@ -248,6 +248,8 @@ class Sector {
 			return false
 		}
 
+		memObject['home'] = this.name
+
 		let creepObj = {
 			body:		creepBody,
 			memory:		memObject,
@@ -288,10 +290,8 @@ class Sector {
 				continue
 			}
 
-			console.log(`Trying to spawn ${targetCreep.name}`)
-
 			// Remove from spawn hash and queue
-			delete this.spawnQueue[spawnIdx]
+			this.spawnQueue.shift()
 			delete this.spawnHash[targetCreep.name]
 		}
 	}

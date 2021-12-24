@@ -3,7 +3,8 @@ Creep.prototype.run = function() {
 		return
 	}
 	
-	this.task = Game.rooms[this.memory.home].tasks[this.memory.taskID]
+	this.task = Imperium.sectors[this.memory.home].tasks[this.memory.taskID]
+	this.say(`${this.memory.stack[0][0]}`)
 	this.invokeState()
 }
 

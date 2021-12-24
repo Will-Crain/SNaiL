@@ -6,8 +6,10 @@ class Imperium {
 		this.inquisitors = inquisitors
 
 		if (_.isUndefined(Memory.Imperium)) {
-			Memory.Imperium = {sectors, inquisitors}
+			Memory.Imperium = this
 		}
+
+		this.initTime = Game.time
 
 		return this
 	}
@@ -39,6 +41,19 @@ class Imperium {
 	}
 
 	run() {
+
+		let sectorKeys = _.keys(this.sectors)
+		if (sectorKeys.length == 0) {
+			// we've just respawned!
+
+			delete Memory.Imperium
+			delete Memory.creeps
+
+			this.save()
+
+			this.checkForSectors()
+		}
+
 		this.currentTick = Game.time
 		for (let sectorID in this.sectors) {
 			this.sectors[sectorID].run()
@@ -57,7 +72,7 @@ class Imperium {
 	checkForSectors() {
 		let ownedRooms = _.filter(Game.rooms, s => s.controller && s.controller.my)
 		for (let roomIdx in ownedRooms) {
-			if (!_.has(this.sectors, ownedRooms[roomIdx])) {
+			if (!_.has(this.sectors, ownedRooms[roomIdx].name)) {
 				this.addSector(ownedRooms[roomIdx].name)
 				this.sectors[ownedRooms[roomIdx].name].init()
 			}
