@@ -1,9 +1,11 @@
 class CreepBody extends Array {
 	constructor(args) {
-		super(...args)
+		super()
 
 		this.map = {}
 		this.invalid = false
+
+		return this
 	}
 	push(part) {
 		if (this.length >= MAX_CREEP_SIZE) {
@@ -20,7 +22,7 @@ class CreepBody extends Array {
 		return super.push(part)
 	}
 	set(part, count) {
-		for (i = 0; i < count; i++) {
+		for (let i = 0; i < count; i++) {
 			this.push(part)
 		}
 
@@ -38,3 +40,5 @@ class CreepBody extends Array {
 		return _.sortBy(this, s => BODY_ORDER[s])
 	}
 }
+
+global.CreepBody = CreepBody
