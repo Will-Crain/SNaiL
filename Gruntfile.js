@@ -24,12 +24,16 @@ module.exports = function(grunt) {
 			}
 		},
 
-		// Remove all files from the dist folder.
+		// Remove all files from ..
 		clean: {
+			// force must be on so it can clear files out of directories that aren't this one (for the private server)
 			options: {
 				force: true
 			},
+			// .. dist
 			screeps: ['dist/*'],
+			
+			// .. from the private serer
 			private: [`${private_directory}/${branch}/*`]
 		},
 
@@ -46,6 +50,7 @@ module.exports = function(grunt) {
 					flatten: true
 				}]
 			},
+			// Copies flattened game code to my private server directory
 			private: {
 				files: [{
 					expand: true,
@@ -62,4 +67,7 @@ module.exports = function(grunt) {
 
 	grunt.registerTask('default',	['clean:screeps', 'copy:screeps', 'screeps']);
 	grunt.registerTask('private',	['clean:private', 'copy:private']);
+	
+	// to run, `grunt` in the command line (when the CLI is pointing to this directory) pushes game code to the `config.branch` branch in Screeps.
+	// `grunt private` in the command line pushes game code to private server directory, also to the `config.branch` branch.
 }
