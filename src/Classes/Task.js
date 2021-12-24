@@ -7,6 +7,9 @@ class Task {
 		})
 	}
 }
+Task.basePriorities = {
+	'MINING':		2
+}
 
 class MINING extends Task {
 	/* MINING taskInfo expects
@@ -137,8 +140,12 @@ class MINING extends Task {
 	}
 	initCreeps() {
 		let miners = this.getCreeps(MINING.BODIES.MINER, {})
-		let haulers = this.getCreeps(MINING.BODIES.HAULER, {actualPerTick: 10, pathLength: this.taskInfo.pathLength})
+		console.log(miners.num, _.sum(miners.body, s => s == WORK))
+		let perTick = miners.num * _.sum(miners.body, s => s == WORK) * HARVEST_POWER
+		let haulers = this.getCreeps(MINING.BODIES.HAULER, {actualPerTick: perTick, pathLength: this.taskInfo.pathLength})
 
+		let minerPriorityBase = 5
+		let minerPriorityGrowth = 0.3
 		for (let i = 0; i < miners.num; i++) {
 			let creepName = makeID()
 			let stateStack = [[
@@ -153,13 +160,16 @@ class MINING extends Task {
 				stack:		stateStack
 			}
 			let outObj = {
-				body: miners.body,
-				memObject: memObject,
-				status: 0
+				body: 		miners.body,
+				priority:	minerPriorityBase + i*minerPriorityGrowth,
+				memObject: 	memObject,
+				status: 		0
 			}
 			this.creeps[creepName] = outObj
 		}
 		
+		let haulerPriorityBase = 5.1
+		let haulerPriorityGrowth = 0.1
 		for (let i = 0; i < haulers.num; i++) {
 			let creepName = makeID()
 			let stateStack = [[
@@ -176,9 +186,10 @@ class MINING extends Task {
 				stack:		stateStack
 			}
 			let outObj = {
-				body: haulers.body,
-				memObject: memObject,
-				status: 0
+				body: 		haulers.body,
+				priority:	haulerPriorityBase + i*haulerPriorityGrowth,
+				memObject: 	memObject,
+				status: 	0
 			}
 			this.creeps[creepName] = outObj
 		}
@@ -595,7 +606,7 @@ GATHERING['BODIES'] = {
 	}
 }
 
-global.Task = {
+global.TASKS = {
 	Task: Task,
 	GATHERING:	GATHERING,
 	MINING: MINING

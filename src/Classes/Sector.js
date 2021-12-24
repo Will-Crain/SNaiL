@@ -33,13 +33,12 @@ class Sector {
 				pathLenght:	path.length,
 				standPos:	RoomPosition.serialize(new RoomPosition(_.last(path).x, _.last(path).y, targetSource.pos.roomName)),
 				originPos:	RoomPosition.serialize(fromPos)
-				
 			}
 
-			let newTask = new Task.MINING({
-				sectorName: this.name,
-				id:			makeID(),
-				taskInfo:	taskInfo
+			let newTask = new TASKS.MINING({
+				sectorName: 	this.name,
+				id:				makeID(),
+				taskInfo:		taskInfo
 			})
 			this.addTask(newTask)
 		}
@@ -267,6 +266,14 @@ class Sector {
 		if (this.spawnQueue.length == 0) {
 			return
 		}
+
+		// Group by task type first
+		// Sort spawnQueue by sum(taskTypePriority, creepPriority)
+		let thisTasks = this.tasks
+		this.spawnQueue = _.sortBy(this.spawnQueue, function(s) {
+			let basePriority = TASKS.Task.basePriorities[thisTasks[s.memory.taskID].type]
+			return s.priority + basePriority
+		})
 
 		let availableSpawns = _.filter(Game.rooms[this.name].find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN && !s.spawning)
 		for (let spawnIdx in availableSpawns) {

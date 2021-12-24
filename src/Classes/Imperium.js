@@ -29,7 +29,7 @@ class Imperium {
 			for (let taskName in memSector.tasks) {
 
 				// Load tasks
-				this.sectors[sectorName].tasks[taskName] = new Task[memSector.tasks[taskName].type](memSector.tasks[taskName])
+				this.sectors[sectorName].tasks[taskName] = new TASKS[memSector.tasks[taskName].type](memSector.tasks[taskName])
 			}
 		}
 
