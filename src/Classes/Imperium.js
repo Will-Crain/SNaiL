@@ -39,6 +39,7 @@ class Imperium {
 	}
 
 	run() {
+		this.currentTick = Game.time
 		for (let sectorID in this.sectors) {
 			this.sectors[sectorID].run()
 		}
