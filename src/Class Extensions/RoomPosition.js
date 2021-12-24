@@ -19,7 +19,7 @@ RoomPosition.parse = function(serPos) {
 	return new RoomPosition(x, y, name)
 }
 
-RoomPosition.prototype.getAdjacent = function(scope) {
+RoomPosition.prototype.getAdjacent = function(scope={}) {
 	let {diagonals=true, serialize=true, checkStructures=false, checkTerrain=true} = scope
 	let targetRoom = Game.rooms[this.roomName]
 		
