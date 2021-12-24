@@ -100,7 +100,26 @@ module.exports = function(grunt) {
 		grunt.file.write(`${dest}/require.js`, outStr)
 	})
 
-	grunt.registerTask('default',	['clean', 'copy', 'makeRequireFile', 'screeps']);
-	grunt.registerTask('private',	['clean', 'clean:private', 'copy', 'makeRequireFile', 'copy:private']);
-	grunt.registerTask('test',		['clean', 'makeRequireFile'])
+	grunt.registerTask('default',	['clean', 'copy', 'makeRequireFile', 'screeps'])
+	grunt.registerTask('private',	['clean', 'clean:private', 'copy', 'makeRequireFile', 'copy:private'])
+
+	/*
+	if you want to use grunt, you'll have to navigate to this folder (cd Documents/GitHub/SNaiL for me)
+	additionally, you'll need to install grunt-clean, grunt-copy, and grunt-screeps
+
+	npm install grunt-clean
+	npm install grunt-copy
+	npm install grunt-screeps
+
+	then navigate to this project's folder &
+	
+	npm install
+	^ i dont actually know if that is necessary, i'm not very good at this
+
+	then to execute grunt, use the following commands:
+	to upload to screeps.com:		grunt
+	to upload to private server:	grunt private
+
+	
+	*/
 }
