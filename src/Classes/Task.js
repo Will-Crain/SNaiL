@@ -35,6 +35,8 @@ class MINING extends Task {
 		this.taskInfo = taskInfo
 		this.creeps = creeps
 
+		this.satisfaction = 0
+
 		this.type = 'MINING'
 	}
 	getCreeps(type, scope={}) {
@@ -113,11 +115,28 @@ class MINING extends Task {
 		this.runCreeps()
 	}
 	runCreeps() {
+		let risk = false
+		let unsatisfied = false
 		for (let creepName in this.creeps) {
 			let creepObj = Game.creeps[creepName]
 			if (!_.isUndefined(creepObj)) {
 				creepObj.run()
+				if (creepObj.ticksToLive < creepObj.body.length*CREEP_SPAWN_TIME) {
+					risk = true
+				}
 			}
+			else {
+				unsatisfied = true
+			}
+		}
+		if (unsatisfied) {
+			this.satisfaction = 2
+		}
+		else if (risk) {
+			this.satisfaction = 1
+		}
+		else {
+			this.satisfaction = 0
 		}
 	}
 	spawnCreeps() {

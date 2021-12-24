@@ -200,7 +200,7 @@ class Sector {
 	}
 
 	run() {
-		this.runTasks()
+		let satisfaction = this.runTasks()
 		this.runSpawns()
 
 		// this.checkEvents()
@@ -227,6 +227,8 @@ class Sector {
 		Imperium.sectors[this.name].tasks[task.id] = task
 	}
 	runTasks() {
+		let satisfaction = 0
+
 		for (let taskID in this.tasks) {
 			let task = Imperium.sectors[this.name].tasks[taskID]
 
@@ -237,7 +239,10 @@ class Sector {
 			}
 
 			Imperium.sectors[this.name].tasks[taskID].run()
+			satisfaction = Math.max(Imperium.sectors[this.name].tasks[taskID].satisfaction, satisfaction)
 		}
+
+		return satisfaction
 	}
 
 	// Spawning
