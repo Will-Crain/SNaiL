@@ -18,11 +18,12 @@ class Sector {
 
 	// Setup
 	init() {
+		let spawnLocation = _.first(Game.rooms[this.name].find(FIND_MY_SPAWNS)).pos
 		let sources = Game.rooms[this.name].find(FIND_SOURCES)
 		for (let sourceIdx in sources) {
 			let targetSource = sources[sourceIdx]
 
-			let fromPos = new RoomPosition(31, 24, this.name)
+			let fromPos = spawnLocation
 			let path = Game.rooms[this.name].findPath(fromPos, targetSource.pos, {ignoreCreeps: true, range: 1})
 
 			let taskInfo = {
@@ -38,7 +39,8 @@ class Sector {
 			let newTask = new TASKS.MINING({
 				sectorName: 	this.name,
 				id:				makeID(),
-				taskInfo:		taskInfo
+				taskInfo:		taskInfo,
+				priorityOffset:	path.length
 			})
 			this.addTask(newTask)
 		}
@@ -268,12 +270,17 @@ class Sector {
 			return
 		}
 
-		// Group by task type first
-		// Sort spawnQueue by sum(taskTypePriority, creepPriority)
+		// Group creeps by task type, sorted by basePriority
+		// Take creep from lowest basePriority then (if multiple tasks) lowest priorityOffset
 		let thisTasks = this.tasks
-		this.spawnQueue = _.sortBy(this.spawnQueue, function(s) {
-			let basePriority = TASKS.Task.basePriorities[thisTasks[s.memory.taskID].type]
-			return s.priority + basePriority
+		this.spawnQueue = _.sortByAll(this.spawnQueue, function(s) {
+			let task = thisTasks[s.memory.taskID]
+
+			let basePriority = TASKS.Task.basePriorities[task.type]
+			let priorityOffset = task.priorityOffset
+			let creepPriority = s.priority
+
+			return [basePriority, priorityOffset, creepPriority]
 		})
 
 		let availableSpawns = _.filter(Game.rooms[this.name].find(FIND_MY_STRUCTURES), s => s.structureType == STRUCTURE_SPAWN && !s.spawning)

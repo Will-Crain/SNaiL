@@ -24,11 +24,13 @@ class MINING extends Task {
 	}
 	*/
 	constructor (scope={}) {
-		let {sectorName, id, taskInfo={}, creeps={}, structures={}} = scope
+		let {sectorName, id, priorityOffset=0, taskInfo={}, creeps={}, structures={}} = scope
 		super()
 
 		this.sectorName = sectorName
 		this.id = id
+
+		this.priorityOffset = priorityOffset
 
 		this.taskInfo = taskInfo
 		this.creeps = creeps
@@ -202,7 +204,6 @@ class MINING extends Task {
 		this.init()
 	}
 }
-
 class GATHERING extends Task {
 	/* GATHERING taskInfo expects
 	{

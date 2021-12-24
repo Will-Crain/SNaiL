@@ -16,17 +16,13 @@ else {
 
 module.exports.loop = function() {
 	hasRespawned()
-	
-    if (Game.time < Memory.respawnTick + 2) {
-        delete Memory.Imperium
-        delete Memory.creeps
-		
-        imperium = new Imperium({})
-        imperium.save()
-    }
-    else if (Game.time == Memory.respawnTick + 2) {
+	if (Game.time < Memory.respawnTick + 1) {
+		return
+	}
+    else if (Game.time == Memory.respawnTick + 1) {
         console.log('Respawn complete!')
-		Imperium.sectors = {}
+
+		global.Imperium = new Imperium()
 		Imperium.checkForSectors()
     }
 

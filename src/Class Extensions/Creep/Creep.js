@@ -78,12 +78,11 @@ Creep.prototype.STATE_MINE = function(scope) {
 	}
 	// Are we near the stand position?
 	else if (this.pos.getRangeTo(sourcePosObj) > 2) {
-		this.pushState('MOVE', {posStr: standPosStr, range: 2})
-		return
+		this.pushState('MOVE', {posStr: sourcePosStr, range: 2})
 	}
 	// Can we stand on the stand position?
 	else if (this.pos.getRangeTo(sourcePosObj) == 2) {
-		let adjacentPositions = [standPosStr, ..._.filter(sourcePosObj.getAdjacent({}), s => s != standPosStr)]
+		let adjacentPositions = [standPosStr, ..._.filter(sourcePosObj.getAdjacent(), s => s != standPosStr)]
 		for (let idx in adjacentPositions) {
 			let adjPosObj = RoomPosition.parse(adjacentPositions[idx])
 			if (!_.some(adjPosObj.look(), s => OBSTACLE_OBJECT_TYPES.includes(s.type))) {
