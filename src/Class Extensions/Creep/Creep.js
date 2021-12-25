@@ -82,11 +82,12 @@ Creep.prototype.STATE_MINE = function(scope) {
 	}
 	// Can we stand on the stand position?
 	else if (this.pos.getRangeTo(sourcePosObj) == 2) {
-		let adjacentPositions = [standPosStr, ..._.filter(sourcePosObj.getAdjacent(), s => s != standPosStr)]
+		let adjacentPositions = this.task.taskInfo.validPositions
 		for (let idx in adjacentPositions) {
 			let adjPosObj = RoomPosition.parse(adjacentPositions[idx])
 			if (!_.some(adjPosObj.look(), s => OBSTACLE_OBJECT_TYPES.includes(s.type))) {
 				this.pushState('MOVE', {posStr: adjacentPositions[idx], range: 0})
+				break
 			}
 		}
 	}
@@ -151,113 +152,7 @@ Creep.prototype.STATE_MOVE = function(scope) {
 	}
 }
 
-Creep.prototype.STATE_LOAD = function(scope) {
-	let {posStr, resource, canPop=true, unloadPosStr, checkAround} = scope
-	let posObj = RoomPosition.parse(posStr)
 
-	// If we're not in range ..
-	if (!this.pos.inRangeTo(posObj, 1)) {
-		this.pushState('MOVE', {posStr: posStr})
-		return
-	}
-
-
-	// otherwise, find an object to take from
-	let targetObj = _.find(posObj.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacitY(resource) > 0)
-	if (targetObj) {
-		let transaction = this.withdraw(targetObj, resource)
-		if (_.isUndefiend(unloadPosStr)) {
-			this.popState()
-		}
-		else {
-			this.pushState('UNLOAD', {posStr: unloadPosStr, resource: resource})
-		}
-	}
-	else {
-		// get positions to check
-		let toCheck = [posStr]
-		if (checkAround) {
-			let adj = RoomPosition.parse(checkAround).getAdjacent()
-			for (let i in adj) {
-				if (!toCheck.includes(adj[i])) {
-					toCheck.push(adj[i])
-				}
-			}
-		}
-
-		// Actually do the checking
-		let targetPos, targetRes
-		for (let idx in toCheck) {
-			let checking = RoomPosition.parse(toCheck[idx])
-			let floorRes = _.find(checking.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
-			if (floorRes) {
-				targetPos = checking
-				targetRes = floorRes
-				break
-			}
-		}
-		// There were resources
-		if (targetPos) {
-			if (this.pos.inRangeTo(targetPos, 1)) {
-				this.pickup(targetRes)
-				
-				if (_.isUndefined(unloadPosStr)) {
-					this.popState()
-				}
-				else {
-					this.pushState('UNLOAD', {posStr: unloadPosStr, resource: resource})
-				}
-			}
-			else {
-				this.pushState('MOVE', {posStr: RoomPosition.serialize(targetPos), range: 1})
-			}
-		}
-		else {
-			if (canPop) {
-				this.popState()
-			}
-			else {
-				this.pushState('WAIT', {until: Game.time+2})
-			}
-		}
-	}
-}
-Creep.prototype.STATE_UNLOAD = function(scope) {
-	let {posStr, resource, canPop=true, loadPosStr} = scope
-	let posObj = RoomPosition.parse(posStr)
-
-	// If we're not in range ..
-	if (!this.pos.inRangeTo(posObj, 1)) {
-		this.pushState('MOVE', {posStr: posStr})
-		return
-	}
-
-	// Otherwise, if we're empty ..
-	if (this.store.getUsedCapacity() == 0) {
-		if (_.isUndefined(loadPosStr)) {
-			this.popState()
-			return
-		}
-		else {
-			this.pushState('LOAD', {posStr: loadPosStr, resource: resource})
-		}
-	}
-
-	// Otherwise,
-	else {
-		// Edge case? If a creep deposits before this, it has nowhere to go. Reserve space?
-		let targetObj = _.find(posObj.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacity(resource) > 0)
-		if (!targetObj) {
-			this.popState()
-		}
-
-		let transaction = this.transfer(targetObj, resource)
-		let popReturns = [-8, 0]
-		if (popReturns.includes(transaction)) {
-			this.popState()
-		}
-	}
-}
 Creep.prototype.STATE_UPGRADE = function(scope) {
 	let {targetRoomName, canPop=true} = scope
 
