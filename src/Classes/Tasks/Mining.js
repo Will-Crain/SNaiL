@@ -163,13 +163,15 @@ class MINING extends Task {
 		}
 
 		let minerPriorityBase = 5
-		let minerPriorityGrowth = 0.3
+		let minerPriorityGrowth = 0.5
 		for (let i = 0; i < miners.num; i++) {
 			let creepName = makeID()
+
+			// update task mine to account for standPos as an array now?
 			let stateStack = [[
 				'MINE', {
 					sourcePosStr:	this.taskInfo.sourcePos,
-					standPosStr:	this.taskInfo.standPos
+					standPosStr:	this.taskInfo.validPositions
 				}
 			]]
 			let memObject = {
@@ -186,17 +188,16 @@ class MINING extends Task {
 			this.creeps[creepName] = outObj
 		}
 		
-		let haulerPriorityBase = 5.1
-		let haulerPriorityGrowth = 0.1
+		let haulerPriorityBase = 5.25
+		let haulerPriorityGrowth = 0.25
 		for (let i = 0; i < haulers.num; i++) {
 			let creepName = makeID()
 			let stateStack = [[
 				'LOAD', {
-					posStr:			this.taskInfo.standPos,
+					loadArray:		this.taskInfo.validPositions,
 					resource:		RESOURCE_ENERGY,
 					canPop: 		false,
-					unloadPosStr:	this.taskInfo.originPos,
-					checkAround:	this.taskInfo.sourcePos
+					unloadArray:	[this.taskInfo.originPos]
 				}
 			]]
 			let memObject = {
