@@ -26,34 +26,41 @@ RoomPosition.parse = function(serPos) {
  * @param {Boolean} [scope.diagonals] Controls whether diagonals in addition to base 4 directions. Default is true.
  * @param {Boolean} [scope.checkStructures] Controls whether RoomPositions with an obstructing structure should be appended to the return array. Default is false.
  * @param {Boolean} [scope.checkTerrain] Controls whether RoomPositions with terrain walls should be appended to the return array. Default is true.
+ * @param {int} [scope.startRange] Controls the range to start iterating at. Default is 1
+ * @param {int} [scope.endRange] Controls the range to end iterating at. Default is 1
  * @return {Array} An array of adjacent room positions according to your options
  */
 RoomPosition.prototype.getAdjacent = function(scope={}) {
-	let {diagonals=true, serialize=true, checkStructures=false, checkTerrain=true} = scope
+	let {
+		diagonals=true, serialize=true, checkStructures=false, checkTerrain=true,
+		startRange=1, endRange=1
+	} = scope
 	let targetRoom = Game.rooms[this.roomName]
 		
 	let terrain = targetRoom.getTerrain()
 	let outArr = []
-		
-	for (let i in DIRECTIONS) {
-		if (i%2 == 0 && diagonals==false) {
-			continue
-		}
-		
-		let [dx, dy] = DIRECTIONS[i]
-		
-		if (checkStructures == false) {
-			let terr = terrain.get(this.x+dx, this.y+dy)
-			if ( !checkTerrain || (checkTerrain && terr !== TERRAIN_MASK_WALL)) {
-				if (serialize) {
-					outArr.push(RoomPosition.serialize(this.add(dx, dy)))
-				}
-				else {
-					outArr.push(this.add(dx, dy))
+	
+	for (let oRange = startRange; oRange <= endRange; oRange+=1) {
+		for (let i in DIRECTIONS[oRange]) {
+			if (i%2 == 0 && diagonals==false && oRange == 1) {
+				continue
+			}
+			
+			let [dx, dy] = DIRECTIONS[i]
+			
+			if (checkStructures == false) {
+				let terr = terrain.get(this.x+dx, this.y+dy)
+				if ( !checkTerrain || (checkTerrain && terr !== TERRAIN_MASK_WALL)) {
+					if (serialize) {
+						outArr.push(RoomPosition.serialize(this.add(dx, dy)))
+					}
+					else {
+						outArr.push(this.add(dx, dy))
+					}
 				}
 			}
+			
 		}
-		
 	}
 	
     return outArr
