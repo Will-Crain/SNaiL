@@ -136,3 +136,4 @@ if (_.isUndefined(global.TASKS)) {
 	global.TASKS = {}
 }
 TASKS['Task'] = Task
+
