@@ -21,11 +21,12 @@ RoomPosition.parse = function(serPos) {
 
 /**
  * Returns an array of adjacent positions
- * @param {Object} scope - An object containing options
- * @param {Boolean} scope.serialize Return adjacent positions as object or string?
- * @param {Boolean} scope.diagonals Check Diagonals, or just 4 base directions?
- * @param {Boolean} scope.checkStructures Count structures against walkable spots?
- * @param {Boolean} scope.checkTerrain Check terrain against walkable spots?
+ * @param {Object} scope - An object containing options: serialize, diagonals, checkStructures, checkTerrain
+ * @param {Boolean} [scope.serialize] Controls whether this function returns serialized roompositions or fresh roomposition objects. Default is true.
+ * @param {Boolean} [scope.diagonals] Controls whether diagonals in addition to base 4 directions. Default is true.
+ * @param {Boolean} [scope.checkStructures] Controls whether RoomPositions with an obstructing structure should be appended to the return array. Default is false.
+ * @param {Boolean} [scope.checkTerrain] Controls whether RoomPositions with terrain walls should be appended to the return array. Default is true.
+ * @return {Array} An array of adjacent room positions according to your options
  */
 RoomPosition.prototype.getAdjacent = function(scope={}) {
 	let {diagonals=true, serialize=true, checkStructures=false, checkTerrain=true} = scope
