@@ -19,6 +19,14 @@ RoomPosition.parse = function(serPos) {
 	return new RoomPosition(x, y, name)
 }
 
+/**
+ * Returns an array of adjacent positions
+ * @param {Object} scope - An object containing options
+ * @param {Boolean} scope.serialize Return adjacent positions as object or string?
+ * @param {Boolean} scope.diagonals Check Diagonals, or just 4 base directions?
+ * @param {Boolean} scope.checkStructures Count structures against walkable spots?
+ * @param {Boolean} scope.checkTerrain Check terrain against walkable spots?
+ */
 RoomPosition.prototype.getAdjacent = function(scope={}) {
 	let {diagonals=true, serialize=true, checkStructures=false, checkTerrain=true} = scope
 	let targetRoom = Game.rooms[this.roomName]
