@@ -1,3 +1,12 @@
+/* Tasks
+	Tasks chill as a child of a Sector or the Imperium and they get run every tick.
+	Some tasks request sectors to spawn creeps, others observe rooms,
+	and others make the labs run and the power flow. They're quite versatile.
+
+	Specific tasks (which are extensions on the base Task class) are
+	named by a -ing verb in all caps. Some examples may include
+	MINING, UPGRADING, OBSERVING, etc.
+*/
 class Task {
 	run() {
 		this.jobs.forEach(function(job, jobIdx) {
