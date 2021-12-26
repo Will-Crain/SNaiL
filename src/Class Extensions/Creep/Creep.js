@@ -68,21 +68,6 @@ Creep.prototype.STATE_HARVEST = function(scope) {
 	}
 }
 
-Creep.prototype.STATE_MOVE = function(scope) {
-	let {posStr, range=1, ignoreCreeps=false} = scope
-	let posObj = RoomPosition.parse(posStr)
-
-	if (this.room.name != posObj.roomName) {
-		// cry
-	}
-	
-	if (this.pos.inRangeTo(posObj, range)) {
-		this.popState()
-	}
-	else {
-		this.moveTo(posObj, {range: range, ignoreCreeps: ignoreCreeps, maxRooms: 1})
-	}
-}
 
 
 Creep.prototype.STATE_BUILD = function(scope) {
