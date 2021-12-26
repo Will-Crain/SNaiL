@@ -31,6 +31,7 @@ class UPGRADING extends TASKS.Task {
 	}
 
 	init() {
+		this.taskInfo.validPositions = RoomPosition.parse(this.taskInfo.controllerPos).getStandPositions({range: 3, serialized: true})
 		this.initCreeps()
 	}
 	initCreeps() {
@@ -110,7 +111,7 @@ class UPGRADING extends TASKS.Task {
 				}
 
 				let roomPos = RoomPosition.parse(this.taskInfo.controllerPos)
-				maxCreeps = roomPos.getAdjacent({startRange: 1, endRange: 3, serialized: true}).length
+				maxCreeps = roomPos.getStandPositions({range: 3, serialized: true}).length
 				break
 		}
 
