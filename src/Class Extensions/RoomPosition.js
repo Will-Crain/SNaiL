@@ -65,6 +65,37 @@ RoomPosition.prototype.getAdjacent = function(scope={}) {
 	
     return outArr
 }
+RoomPosition.getStandPositions = function(scope={}) {
+	let {
+		serialize=true, checkTerrain=true,
+		range=1
+	}
+
+	let targetRoom = Game.rooms[this.roomName]
+
+	let terrain = targetRoom.getTerrain()
+	let outArr = []
+	for (let i = -range; i <= range; i++) {
+		for (let j = -range; j <+ ange; j++) {
+			let testPos = new RoomPosition = this.add(i, j)
+
+			if (checkTerrain && terrain.get(testPos.x, testPos.y) == TERRAIN_MASK_WALL) {
+				continue
+			}
+
+			if (testPos.x%2 == 0 || testPos.y%2 == 0) {
+				if (serialize) {
+					outArr.push(RoomPosition.serialize(testPos))
+				}
+				else {
+					outArr.push(testPos)
+				}
+			}
+		}
+	}
+
+	return outArr
+}
 RoomPosition.prototype.add = function(x, y) {
 	if (this.x+x > 49 || this.y+y > 49 || this.x+x < 0 || this.y+y < 0) {
 		return this
