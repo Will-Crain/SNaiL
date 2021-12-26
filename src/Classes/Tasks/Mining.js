@@ -1,4 +1,4 @@
-class MINING extends Task {
+class MINING extends TASKS.Task {
 	/* MINING taskInfo expects
 	{
 		str sourceID,		Source ID
@@ -238,9 +238,6 @@ MINING['lookup'] = {
 	[RESOURCE_CATALYST]:	HARVEST_MINERAL_POWER
 }
 
-if (_.isUndefined(global.TASKS)) {
-	global.TASKS = {}
-}
 TASKS['MINING'] = MINING
 
 

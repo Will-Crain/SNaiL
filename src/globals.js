@@ -62,3 +62,4 @@ global.BODY_ORDER = [TOUGH, MOVE, CARRY, WORK, RANGED_ATTACK, ATTACK, CLAIM, HEA
 global.makeID = function() {
 	return `${Math.random().toString(36).slice(2, 11)}`
 }
+global.TASKS = {}

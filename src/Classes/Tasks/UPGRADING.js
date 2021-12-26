@@ -1,4 +1,4 @@
-class UPGRADING extends Task {
+class UPGRADING extends TASKS.Task {
 	/* UPGRADING taskInfo expects
 	{
 		str controllerID,		Controller ID
@@ -176,7 +176,4 @@ UPGRADING['BODIES'] = {
 	'HAULER':	'HAULER'
 }
 
-if (_.isUndefined(global.TASKS)) {
-	global.TASKS = {}
-}
 TASKS['UPGRADING'] = UPGRADING

@@ -88,9 +88,15 @@ module.exports = function(grunt) {
 	// This task creates our require file, requiring everything except main.js, 
 	// then truncates the file extension off
 	grunt.registerTask('makeRequireFile', function(directory='src/', dest='dist/') {
-		let outStr = ''
+		let outStr = ``
+		let priorityFiles = ['globals']
+		for (let fileName of priorityFiles) {
+			outStr += `require('${fileName}')\n`
+		}
+		outStr += '\n'
+		
 		grunt.file.recurse(directory, function(path, rootDirectory, subDirectory, fileName) {
-			if (fileName != 'main.js') {
+			if (fileName != 'main.js' && !priorityFiles.includes(fileName)) {
 				let name = fileName.slice(0, fileName.length-3)
 				let requireString = `require('${name}')`
 				outStr += `${requireString}\n`
