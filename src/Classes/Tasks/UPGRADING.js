@@ -48,6 +48,7 @@ class UPGRADING extends Task {
 				'UPGRADE', {
 					controllerPos:	this.taskInfo.controllerPos,
 					controllerID:	this.taskInfo.controllerID,
+					loadFrom:		[this.taskInfo.linkPos, this.taskInfo.containerPos],
 					canPop: 		false
 				}
 			]]
@@ -62,7 +63,7 @@ class UPGRADING extends Task {
 				memObject:	memObject,
 				status:		0
 			}
-			
+
 			this.creeps[creepName] = outObj
 		}
 	}
