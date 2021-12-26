@@ -45,6 +45,7 @@ class Task {
 			}
 			else {
 				unsatisfied = true
+				this.creeps[creepName].status = 0
 			}
 		}
 		if (unsatisfied) {
