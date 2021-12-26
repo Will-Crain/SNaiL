@@ -74,22 +74,6 @@ class UPGRADING extends TASKS.Task {
 		this.spawnCreeps()
 		this.runCreeps()
 	}
-	spawnCreeps() {
-		for (let creepName in this.creeps) {
-			let creepObj = this.creeps[creepName]
-			if (!_.has(Game.creeps, creepName) && creepObj.status == 0) {
-				let succeeded = Imperium.sectors[this.sectorName].addCreep({
-					creepName:		creepName,
-					creepBody:		this.creeps[creepName].body,
-					memObject:		this.creeps[creepName].memObject,
-					priority:		this.creeps[creepName].priority
-				})
-				if (succeeded) {
-					this.creeps[creepName].status = 1
-				}
-			}
-		}
-	}
 
 	getCreeps(type, scope={}) {
 		let coreRoom = Game.rooms[this.sectorName]
@@ -146,6 +130,7 @@ class UPGRADING extends TASKS.Task {
 
 
 		let outObj = {num: Math.min(maxCreeps, numCreeps), body: requiredParts}
+		console.log(outObj.num, maxCreeps, numCreeps)
 		return outObj
 	}
 
