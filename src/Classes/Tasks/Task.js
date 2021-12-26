@@ -17,7 +17,8 @@ class Task {
 	}
 }
 Task.basePriorities = {
-	'MINING':		2
+	'MINING':		2,
+	'UPGRADING':	3
 }
 
 
@@ -130,8 +131,6 @@ class GATHERING extends Task {
 		//
 	}
 }
-
-
 
 GATHERING['BODIES'] = {
 	GATHERER: {
