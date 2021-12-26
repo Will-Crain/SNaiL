@@ -5,7 +5,7 @@ Creep.prototype.STATE_LOAD = function(scope) {
 	if (this.store.getFreeCapacity(resource) == 0) {
 		this.memory.arraySpot = 0
 		if (unloadArray) {
-			this.pushState('UNLOAD', {unloadArray: unloadArray, loadArray: loadArray, resource: resource})
+			this.pushState('UNLOAD', {unloadArray: unloadArray, resource: resource})
 		}
 		else if (canPop) {
 			this.popState()
@@ -13,6 +13,8 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		else {
 			this.pushState('WAIT', {until: Game.time + 3})
 		}
+
+		return
 	}
 
 	if (_.isUndefined(this.memory.arraySpot)) {
