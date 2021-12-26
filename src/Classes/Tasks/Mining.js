@@ -167,7 +167,6 @@ class MINING extends Task {
 		for (let i = 0; i < miners.num; i++) {
 			let creepName = makeID()
 
-			// update task mine to account for standPos as an array now?
 			let stateStack = [[
 				'MINE', {
 					sourcePosStr:	this.taskInfo.sourcePos,
