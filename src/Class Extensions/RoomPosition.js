@@ -46,7 +46,7 @@ RoomPosition.prototype.getAdjacent = function(scope={}) {
 				continue
 			}
 			
-			let [dx, dy] = DIRECTIONS[i]
+			let [dx, dy] = DIRECTIONS[oRange][i]
 			
 			if (checkStructures == false) {
 				let terr = terrain.get(this.x+dx, this.y+dy)
