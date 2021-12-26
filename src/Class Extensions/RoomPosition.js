@@ -83,7 +83,7 @@ RoomPosition.getStandPositions = function(scope={}) {
 				continue
 			}
 
-			if (testPos.x%2 == 0 || testPos.y%2 == 0) {
+			if (testPos.x%2 == testPos.y%2) {
 				if (serialize) {
 					outArr.push(RoomPosition.serialize(testPos))
 				}
