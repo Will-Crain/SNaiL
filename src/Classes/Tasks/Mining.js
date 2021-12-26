@@ -104,52 +104,11 @@ class MINING extends TASKS.Task {
 		this.spawnCreeps()
 		this.runCreeps()
 	}
-	runCreeps() {
-		let risk = false
-		let unsatisfied = false
-		for (let creepName in this.creeps) {
-			let creepObj = Game.creeps[creepName]
-			if (!_.isUndefined(creepObj)) {
-				creepObj.run()
-				if (creepObj.ticksToLive < creepObj.body.length*CREEP_SPAWN_TIME) {
-					risk = true
-				}
-			}
-			else {
-				unsatisfied = true
-			}
-		}
-		if (unsatisfied) {
-			this.satisfaction = 2
-		}
-		else if (risk) {
-			this.satisfaction = 1
-		}
-		else {
-			this.satisfaction = 0
-		}
-	}
-	spawnCreeps() {
-		for (let creepName in this.creeps) {
-			let creepObj = this.creeps[creepName]
-			if (!_.has(Game.creeps, creepName) && creepObj.status == 0) {
-				let succeeded = Imperium.sectors[this.sectorName].addCreep({
-					creepName:		creepName,
-					creepBody:		this.creeps[creepName].body,
-					memObject:		this.creeps[creepName].memObject,
-					priority:		this.creeps[creepName].priority
-				})
-				if (succeeded) {
-					this.creeps[creepName].status = 1
-				}
-			}
-		}
-	}
 
 
 	init() {
 		let sourcePosObj = RoomPosition.parse(this.taskInfo.sourcePos)
-		// let adj = _.filter(sourcePosObj.getAdjacent({serialize: true, checkTerrain: true}), s => s != this.taskInfo.standPos)
+		let adj = _.filter(sourcePosObj.getAdjacent({serialize: true, checkTerrain: true}), s => s != this.taskInfo.standPos)
 
 		this.taskInfo.validPositions = [this.taskInfo.standPos, ...adj]
 

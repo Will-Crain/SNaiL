@@ -15,6 +15,48 @@ class Task {
 			})
 		})
 	}
+	spawnCreeps() {
+		for (let creepName in this.creeps) {
+			let creepObj = this.creeps[creepName]
+			if (!_.has(Game.creeps, creepName) && creepObj.status == 0) {
+				let succeeded = Imperium.sectors[this.sectorName].addCreep({
+					creepName:		creepName,
+					creepBody:		this.creeps[creepName].body,
+					memObject:		this.creeps[creepName].memObject,
+					priority:		this.creeps[creepName].priority
+				})
+				if (succeeded) {
+					this.creeps[creepName].status = 1
+				}
+			}
+		}
+	}
+	runCreeps() {
+		let risk = false
+		let unsatisfied = false
+
+		for (let creepName in this.creeps) {
+			if (_.has(Game.creeps, creepName)) {
+				let creepObj = Game.creeps[creepName]
+				creepObj.run()
+				if (creepObj.ticksToLive < creepObj.body.length*CREEP_SPAWN_TIME) {
+					risk = true
+				}
+			}
+			else {
+				unsatisfied = true
+			}
+		}
+		if (unsatisfied) {
+			this.satisfaction = 2
+		}
+		else if (risk) {
+			this.satisfaction = 1
+		}
+		else {
+			this.satisfaction = 0
+		}
+	}
 }
 Task.basePriorities = {
 	'MINING':		2,
