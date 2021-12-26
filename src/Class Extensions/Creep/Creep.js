@@ -85,33 +85,6 @@ Creep.prototype.STATE_MOVE = function(scope) {
 }
 
 
-Creep.prototype.STATE_UPGRADE = function(scope) {
-	let {targetRoomName, canPop=true} = scope
-
-	let posObj = Game.rooms[targetRoomName].controller
-	let posStr = RoomPosition.serialize(posObj.pos)
-
-	// If we're empty ..
-	if (this.store[RESOURCE_ENERGY] == 0) {
-		// If we're not a dedicated upgrader ..
-		if (canPop) {
-			this.popState()
-		}
-		// Otherwise, fill up
-		else {
-			//
-		}
-	}
-
-	// Otherwise, check if we're in range
-	if (!this.pos.inRangeTo(posObj, 3)) {
-		this.pushState('MOVE', {posStr: posStr, range: 3})
-		return
-	}
-
-	// Otherwise, upgrade
-	this.upgradeController(posObj)
-}
 Creep.prototype.STATE_BUILD = function(scope) {
 	let {posStr, canPop=true} = scope
 	let conSite = RoomPosition.parse(posStr).lookFor(LOOK_CONSTRUCTION_SITES)

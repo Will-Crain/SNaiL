@@ -47,6 +47,9 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		if (this.memory.arraySpot >= loadArray.length) {
 			// Consider going back to STATE_UNLOAD here
 			this.memory.arraySpot = 0
+			if (canPop) {
+				this.popState()
+			}
 		}
 	}
 	
