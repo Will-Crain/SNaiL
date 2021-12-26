@@ -45,7 +45,7 @@ Creep.prototype.STATE_MINE = function(scope) {
 		this.harvest(source)
 	}
 	else {
-		if (_.isUnefined(this.memory.arraySpot)) {
+		if (_.isUndefined(this.memory.arraySpot)) {
 			this.memory.arraySpot = 0
 		}
 
@@ -56,6 +56,7 @@ Creep.prototype.STATE_MINE = function(scope) {
 		if (!this.pos.inRangeTo(targetPosition, 0)) {
 			this.memory.arraySpot += 1
 			this.pushState('MOVE', {posStr: standPositions[this.memory.arraySpot], failPops: true})
+			return
 		}
 	}
 }
