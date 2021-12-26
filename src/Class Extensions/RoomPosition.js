@@ -65,7 +65,7 @@ RoomPosition.prototype.getAdjacent = function(scope={}) {
 	
     return outArr
 }
-RoomPosition.getStandPositions = function(scope={}) {
+RoomPosition.prototype.getStandPositions = function(scope={}) {
 	let {
 		serialize=true, checkTerrain=true,
 		range=1
@@ -76,7 +76,7 @@ RoomPosition.getStandPositions = function(scope={}) {
 	let terrain = targetRoom.getTerrain()
 	let outArr = []
 	for (let i = -range; i <= range; i++) {
-		for (let j = -range; j <+ ange; j++) {
+		for (let j = -range; j <+ range; j++) {
 			let testPos = this.add(i, j)
 
 			if (checkTerrain && terrain.get(testPos.x, testPos.y) == TERRAIN_MASK_WALL) {
