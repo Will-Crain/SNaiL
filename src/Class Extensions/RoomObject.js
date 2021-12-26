@@ -8,12 +8,8 @@ RoomObject.prototype.invokeState = function() {
 
 	return
 }
-RoomObject.prototype.getState = function(defaultState = 'IDLE') {
-	if (!this.memory.stack) {
-		return defaultState
-	}
-	
-	return this.memory.stack[0][0] || defaultState
+RoomObject.prototype.getState = function() {	
+	return this.memory.stack[0][0]
 }
 RoomObject.prototype.setState = function(state, scope={}) {
 	if (!this.memory.stack) {
