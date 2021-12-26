@@ -51,11 +51,13 @@ Creep.prototype.STATE_MINE = function(scope) {
 
 		let targetPosition = RoomPosition.parse(standPositions[this.memory.arraySpot])
 
-		// Are we in range? If not, move there, but allow the state to fail and iterate targetPosition
-		// in case we find ourselves here again
+		// Are we in range? 
 		if (!this.pos.inRangeTo(targetPosition, 0)) {
+			this.pushState('MOVE', {posStr: RoomPosition.serialize(targetPosition), failPops: true})
 			this.memory.arraySpot += 1
-			this.pushState('MOVE', {posStr: standPositions[this.memory.arraySpot], failPops: true})
+			if (this.memory.arraySpot > standPositions.length - 1) {
+				this.memory.arraySpot = 0
+			}
 			return
 		}
 	}
