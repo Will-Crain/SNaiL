@@ -32,7 +32,7 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		let validStructure = _.find(targetPosition.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getUsedCapacity(resource) > 0)
 		if (validStructure) {
 			this.withdraw(validStructure, resource)
-			this.memory.arraySpot += 1
+			this.memory.arraySpot = this.memory.arraySpot == validStructures.length-1 ? 0 : this.memory.arraySpot + 1
 			return
 		}
 
@@ -40,7 +40,7 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		let validResource = _.find(targetPosition.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
 		if (validResource) {
 			this.pickup(validResource)
-			this.memory.arraySpot += 1
+			this.memory.arraySpot = this.memory.arraySpot == validStructures.length-1 ? 0 : this.memory.arraySpot + 1
 			return
 		}
 
