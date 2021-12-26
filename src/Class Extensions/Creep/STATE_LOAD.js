@@ -35,7 +35,7 @@ Creep.prototype.STATE_LOAD = function(scope) {
 		}
 
 		// Check for ground resources instead
-		let validResources = _.find(targetPosition.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
+		let validResource = _.find(targetPosition.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
 		if (validResource) {
 			this.pickup(validResource)
 			this.memory.arraySpot += 1
