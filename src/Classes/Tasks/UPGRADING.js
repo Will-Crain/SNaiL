@@ -13,8 +13,9 @@ class UPGRADING extends TASKS.Task {
 		let {
 			sectorName, id, taskInfo={},
 			creeps={}, structures={}, 
-			priorityOffset =0
+			priorityOffset=0
 		} = scope
+		super()
 
 		this.sectorName = sectorName
 		this.id = id
@@ -41,7 +42,7 @@ class UPGRADING extends TASKS.Task {
 
 		let upgraderPriorityBase = 5
 		let upgraderPriorityGrowth = 0.5
-		for (let i = 0; i < miners.num; i++) {
+		for (let i = 0; i < upgraders.num; i++) {
 			let creepName = makeID()
 
 			let stateStack = [[
@@ -52,7 +53,7 @@ class UPGRADING extends TASKS.Task {
 					canPop: 		false
 				}
 			]]
-			let memObj = {
+			let memObject = {
 				taskID:		this.id,
 				home:		this.name,
 				stack:		stateStack
@@ -134,7 +135,7 @@ class UPGRADING extends TASKS.Task {
 				}
 
 				let roomPos = RoomPosition.parse(this.taskInfo.controllerPos)
-				let maxCreeps = roomPos.getAdjacent({startRange: 1, endRange: 3, serialized: true}).length
+				maxCreeps = roomPos.getAdjacent({startRange: 1, endRange: 3, serialized: true}).length
 				break
 		}
 
@@ -145,13 +146,14 @@ class UPGRADING extends TASKS.Task {
 
 		let solved = false
 		while (!solved) {
+
 			let newParts = {
 				[targetPart]:	Math.ceil(maxTargetPart/numCreeps)
 			}
 			for (let part in perTarget) {
 				newParts[part] = Math.ceil(maxTargetPart*perTarget[part]/numCreeps)
 			}
-
+		
 			requiredParts = new CreepBody()
 			for (let part in newParts) {
 				requiredParts.set(part, newParts[part])
@@ -166,7 +168,8 @@ class UPGRADING extends TASKS.Task {
 			}
 		}
 
-		let outObj = {num: Math.min(maxCereps, numCreeps), body: requiredParts}
+
+		let outObj = {num: Math.min(maxCreeps, numCreeps), body: requiredParts}
 		return outObj
 	}
 
