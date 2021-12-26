@@ -41,7 +41,7 @@ Creep.prototype.STATE_UNLOAD = function(scope) {
 		let validStructure = _.find(targetPosition.lookFor(LOOK_STRUCTURES), s => s.store && s.store.getFreeCapacity(resource) > 0)
 		if (validStructure) {
 			this.say(this.transfer(validStructure, resource))
-			this.memory.arraySpot = this.memory.arraySpot == validStructures.length-1 ? 0 : this.memory.arraySpot + 1
+			this.memory.arraySpot = this.memory.arraySpot == unloadArray.length-1 ? 0 : this.memory.arraySpot + 1
 			return
 		}
 		else {
@@ -51,7 +51,7 @@ Creep.prototype.STATE_UNLOAD = function(scope) {
 			if (!validPosition) {
 				this.moveTo(validPosition)
 				this.drop(resource)
-				this.memory.arraySpot = this.memory.arraySpot == validStructures.length-1 ? 0 : this.memory.arraySpot + 1
+				this.memory.arraySpot = this.memory.arraySpot == unloadArray.length-1 ? 0 : this.memory.arraySpot + 1
 				return
 			}
 			else {
