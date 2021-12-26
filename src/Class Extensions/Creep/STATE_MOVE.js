@@ -1,4 +1,4 @@
-Creep.prototype.STATE_MOVE = function(scope) {
+Creep.prototype.STATE_MOVE = function(scope={}) {
 	let {posStr, range=1, ignoreCreeps=false, errorPops=false} = scope
 	let posObj = RoomPosition.parse(posStr)
 
