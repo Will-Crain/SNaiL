@@ -19,8 +19,28 @@ class Sector {
 	// Setup
 	init() {
 		let spawnLocation = _.first(Game.rooms[this.name].find(FIND_MY_SPAWNS)).pos
-		let sources = Game.rooms[this.name].find(FIND_SOURCES)
 		let targetRoom = Game.rooms[this.name]
+
+		let controllerPath = targetRom.findPath(spawnLocation, targetRoom.controller, {ignoreCreeps: true, range: 1})
+		let containerPos = new RoomPosition(controllerPath[controllerPath.length-1].x, controllerPath[controllerPath.length-1].y, this.name)
+		let linkPos = new RoomPosition(controllerPath[controllerPath.length-2].x, controllerPath[controllerPath.length-2].y, this.name)
+
+		let upgradeTaskInfo = {
+			controllerID:		targetRoom.controller.id,
+			controllerPos:		RoomPosition.serialize(targetRoom.controller.pos),
+			desiredThroughput:	15,
+			containerPos:		RoomPosition.serialize(containerPos),
+			linkPos:			RoomPosition.serialize(linkPos),
+			static:				true
+		}
+		let upgradeTask = new TASKS.UPGRADING({
+			sectorName:		this.name,
+			id:				makeID(),
+			taskInfo:		upgradeTaskInfo
+		})
+		this.addTask(upgradeTask)
+
+		let sources = Game.rooms[this.name].find(FIND_SOURCES)
 
 		for (let sourceIdx in sources) {
 			let targetSource = sources[sourceIdx]
@@ -42,28 +62,11 @@ class Sector {
 				sectorName: 	this.name,
 				id:				makeID(),
 				taskInfo:		taskInfo,
-				priorityOffset:	path.length
+				priorityOffset:	path.length,
+				unloadOrder:	[RoomPosition.serialize(spawnLocation), RoomPosition.serialize(containerPos)]
 			})
 			this.addTask(newTask)
 		}
-
-		let controllerPath = targetRom.findPath(spawnLocation, targetRoom.controller, {ignoreCreeps: true, range: 1})
-		let containerPos = new RoomPosition(controllerPath[controllerPath.length-1].x, controllerPath[controllerPath.length-1].y, this.name)
-		let linkPos = new RoomPosition(controllerPath[controllerPath.length-2].x, controllerPath[controllerPath.length-2].y, this.name)
-
-		let upgradeTaskInfo = {
-			controllerID:		targetRoom.controller.id,
-			controllerPos:		RoomPosition.serialize(targetRoom.controller.pos),
-			desiredThroughput:	15,
-			containerPos:		RoomPosition.serialize(containerPos),
-			linkPos:			RoomPosition.serialize(linkPos),
-			static:				true
-		}
-		let upgradeTask = new TASKS.UPGRADING({
-			sectorName:		this.name,
-			id:				makeID(),
-			taskInfo:		upgradeTaskInfo
-		})
 	}
 	plan() {
 		let roomObj = Game.rooms[this.name]

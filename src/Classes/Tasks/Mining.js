@@ -11,7 +11,7 @@ class MINING extends Task {
 	}
 	*/
 	constructor (scope={}) {
-		let {sectorName, id, priorityOffset=0, taskInfo={}, creeps={}, structures={}} = scope
+		let {sectorName, id, priorityOffset=0, taskInfo={}, creeps={}, structures={}, unloadOrder=[]} = scope
 		super()
 
 		this.sectorName = sectorName
@@ -21,6 +21,9 @@ class MINING extends Task {
 
 		this.taskInfo = taskInfo
 		this.creeps = creeps
+
+		this.structures = structures
+		this.unloadOrder = unloadOrder
 
 		this.satisfaction = 0
 
@@ -196,7 +199,7 @@ class MINING extends Task {
 					loadArray:		this.taskInfo.validPositions,
 					resource:		RESOURCE_ENERGY,
 					canPop: 		false,
-					unloadArray:	[this.taskInfo.originPos]
+					unloadArray:	this.unloadOrder
 				}
 			]]
 			let memObject = {
