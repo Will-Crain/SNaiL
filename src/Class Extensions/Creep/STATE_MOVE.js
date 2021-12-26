@@ -11,10 +11,18 @@ Creep.prototype.STATE_MOVE = function(scope={}) {
 	}
 	else {
 		let move = this.moveTo(posObj, {range: range, ignoreCreeps: ignoreCreeps, maxRooms: 1})
-		let allowedCodes = [0, -5, -11]
+		let allowedCodes = [-5, -11]
 		if (!allowedCodes.includes(move) && errorPops) {
-			this.say('Early pop!')
 			this.popState()
+			
+			return
+		}
+		// Is there a stationary creep at our destination?
+		let obstructingCreep = _.find(posObj.lookFor(LOOK_CREEPS), s => s.my && s.getState() != 'MOVE')
+		if (!_.isUndefined(obstructingCreep) && errorPops) {
+			this.popState()
+
+			return
 		}
 	}
 }
