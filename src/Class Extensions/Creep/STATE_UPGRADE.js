@@ -13,8 +13,10 @@ Creep.prototype.STATE_UPGRADE = function(scope) {
 		}
 	}
 	// Otherwise, check if in range
-	else if (!this.pos.inRangeTo(controller, 3)) {
-		this.pushState('MOVE', {posStr: controllerPos, range: 3})
+	else if (!this.task.taskInfo.validPositions.includes(RoomPosition.serialize(this.pos))) {
+		let positionMap = _.map(this.task.taskInfo.validPositions, s => RoomPosition.serialize(s))
+		let targetPosition = _.find(positionMap, s => s.lookFor(LOOK_CREEPS).length == 0)
+		this.pushState('MOVE', {posStr: RoomPosition.serialize(targetPosition), range: 0, errorPops: true})
 	}
 	else {
 		this.upgradeController(controller)
