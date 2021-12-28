@@ -16,8 +16,5 @@
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-rsync": "^3.0.0"
-  },
-  "dependencies": {
-    "lodash": "^3.10.1"
   }
 }
