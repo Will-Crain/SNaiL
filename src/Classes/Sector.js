@@ -22,8 +22,8 @@ class Sector {
 		let targetRoom = Game.rooms[this.name]
 
 		let controllerPath = targetRoom.findPath(spawnLocation, targetRoom.controller.pos, {ignoreCreeps: true, range: 1})
-		let containerPos = new RoomPosition(controllerPath[controllerPath.length-1].x, controllerPath[controllerPath.length-1].y, this.name)
-		let linkPos = new RoomPosition(controllerPath[controllerPath.length-2].x, controllerPath[controllerPath.length-2].y, this.name)
+		let containerPos = new RoomPosition(controllerPath[controllerPath.length-2].x, controllerPath[controllerPath.length-2].y, this.name)
+		let linkPos = new RoomPosition(controllerPath[controllerPath.length-3].x, controllerPath[controllerPath.length-3].y, this.name)
 
 		let upgradeTaskInfo = {
 			controllerID:		targetRoom.controller.id,
