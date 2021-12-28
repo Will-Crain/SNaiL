@@ -10,7 +10,9 @@ Creep.prototype.STATE_MOVE = function(scope={}) {
 		this.popState()
 	}
 	else {
-		let move = this.moveTo(posObj, {range: range, ignoreCreeps: ignoreCreeps, maxRooms: 1})
+		let moveOpts = {range: range, ignoreCreeps: ignoreCreeps}
+
+		let move = this.moveTo(posObj, moveOpts)
 		let allowedCodes = [-5, -11]
 		if (!allowedCodes.includes(move) && errorPops) {
 			this.popState()
