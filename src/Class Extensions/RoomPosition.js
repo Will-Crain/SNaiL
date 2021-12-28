@@ -68,7 +68,7 @@ RoomPosition.prototype.getAdjacent = function(scope={}) {
 RoomPosition.prototype.getStandPositions = function(scope={}) {
 	let {
 		serialize=true, checkTerrain=true,
-		range=1
+		range=1, type=true
 	} = scope
 
 	let targetRoom = Game.rooms[this.roomName]
@@ -83,7 +83,7 @@ RoomPosition.prototype.getStandPositions = function(scope={}) {
 				continue
 			}
 
-			if (testPos.x%2 == testPos.y%2) {
+			if (type != (testPos.x%2 == testPos.y%2)) {
 				if (serialize) {
 					outArr.push(RoomPosition.serialize(testPos))
 				}
