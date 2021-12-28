@@ -10,7 +10,6 @@ class Imperium {
 		}
 
 		this.initTime = Game.time
-
 		return this
 	}
 
@@ -33,7 +32,6 @@ class Imperium {
 			}
 		}
 
-		global.Imperium = this
 		return this
 	}
 	save() {
