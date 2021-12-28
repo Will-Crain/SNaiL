@@ -31,7 +31,8 @@ class UPGRADING extends TASKS.Task {
 	}
 
 	init() {
-		this.taskInfo.validPositions = RoomPosition.parse(this.taskInfo.controllerPos).getStandPositions({range: 3, serialized: true})
+		let container = RoomPosition.parse(this.taskInfo.containerPos)
+		this.taskInfo.validPositions = container.getAdjacent({serialize: true}).filter(s => s != this.taskInfo.linkPos)
 		this.initCreeps()
 	}
 	initCreeps() {
@@ -50,7 +51,7 @@ class UPGRADING extends TASKS.Task {
 				'UPGRADE', {
 					controllerPos:	this.taskInfo.controllerPos,
 					controllerID:	this.taskInfo.controllerID,
-					loadFrom:		[this.taskInfo.linkPos, this.taskInfo.containerPos],
+					loadFrom:		[this.taskInfo.containerPos],
 					canPop: 		false
 				}
 			]]
@@ -94,8 +95,7 @@ class UPGRADING extends TASKS.Task {
 					[MOVE]:		4/8
 				}
 
-				let roomPos = RoomPosition.parse(this.taskInfo.controllerPos)
-				maxCreeps = roomPos.getStandPositions({range: 3, serialized: true}).length
+				maxCreeps = this.taskInfo.validPositions.length
 				break
 		}
 
@@ -130,7 +130,6 @@ class UPGRADING extends TASKS.Task {
 
 
 		let outObj = {num: Math.min(maxCreeps, numCreeps), body: requiredParts}
-		console.log(outObj.num, maxCreeps, numCreeps)
 		return outObj
 	}
 
