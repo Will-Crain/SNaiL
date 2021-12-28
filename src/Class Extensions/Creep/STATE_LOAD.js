@@ -38,9 +38,15 @@ Creep.prototype.STATE_LOAD = function(scope) {
 
 		// Check for ground resources instead
 		let validResource = _.find(targetPosition.lookFor(LOOK_RESOURCES), s => s.resourceType == resource)
-		if (validResource) {
-			this.pickup(validResource)
-			this.memory.arraySpot = this.memory.arraySpot == loadArray.length-1 ? 0 : this.memory.arraySpot + 1
+		if (!_.isUndefined(validResource)) {
+			if (!this.pos.inRangeTo(validResource.pos, 1)) {
+				this.pushState('MOVE', {posStr: RoomPosition.serialize(validResource.pos)})
+			}
+			else {
+				this.pickup(validResource)
+				this.memory.arraySpot = this.memory.arraySpot == loadArray.length-1 ? 0 : this.memory.arraySpot + 1
+			}
+			
 			return
 		}
 
