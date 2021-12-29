@@ -213,14 +213,21 @@ class Sector {
 
 		let prevCPU = Game.cpu.getUsed()
 		let yieldObj = global[id].generator.next()
-		let used = Game.cpu.getUsed() - prevCPU
-		console.log(used.toFixed(3))
+		let used = (Game.cpu.getUsed() - prevCPU).toFixed(3)
+		
+		let toLog = yieldObj.value
+		while (_.has(toLog, 'value')) {
+			toLog = toLog.value
+		}
+
+		console.log(`${toLog}\t${used}`)
+		
 		if (yieldObj.done) {
 			console.log(`${this.name} finished room planning`)
 			Imperium.sectors[this.name].planInfo = yieldObj.value
 			
 			RoomVisual.drawPositions(yieldObj.value['wallSpots'], this.name)
-			RoomVisual.drawGrid(PathFinder.CostMatrix.deserialize(yieldObj.value['interior']), this.name, {text: false, cutoffMin: 0, cutoffMax: 255})
+			RoomVisual.drawGrid(PathFinder.CostMatrix.deserialize(yieldObj.value['interior']), this.name, {text: false, cutoffMin: 0, cutoffMax: 25})
 
 			delete global[id]
 		}
@@ -232,7 +239,7 @@ class Sector {
 		let roomObj = Game.rooms[this.name]
 		let roomTerrain = roomObj.getTerrain()
 
-		let getDistanceWalls = function() {
+		function getDistanceWalls() {
 			let distanceWalls = new PathFinder.CostMatrix
 
 			for (let y = 0; y < 50; y += 1) {
@@ -287,9 +294,9 @@ class Sector {
 			}
 
 			persists['distanceWalls'] = distanceWalls.serialize()
-			return distanceWalls
+			return 'getDistanceWalls'
 		}
-		let getDistanceExits = function() {
+		function getDistanceExits() {
 			let distanceExits = new PathFinder.CostMatrix
 
 			// This is a flood fill from room exits
@@ -338,9 +345,9 @@ class Sector {
 			}
 
 			persists['distanceExits'] = distanceExits.serialize()
-			return distanceExits
+			return 'getDistanceExits'
 		}
-		let getDistanceWallsExits = function() {
+		function getDistanceWallsExits() {
 			let distanceWallsExits = new PathFinder.CostMatrix
 			let distanceWalls = PathFinder.CostMatrix.deserialize(persists['distanceWalls'])
 			let distanceExits = PathFinder.CostMatrix.deserialize(persists['distanceExits'])
@@ -366,10 +373,12 @@ class Sector {
 			}
 
 			persists['distanceWallsExits'] = distanceWallsExits.serialize()
-			return distanceWallsExits
+			return 'getDistanceWallsExits'
 		}
-		let generateWallLocations = function() {
+		function* generateWallLocations() {
 			let distanceWallsExits = PathFinder.CostMatrix.deserialize(persists['distanceWallsExits'])
+			let wallSpots = []
+			let exits = Game.map.describeExits(roomObj.name)
 
 			// Predefining start & end locations based on valid exit side
 			let startLocations = {
@@ -384,185 +393,220 @@ class Sector {
 				5:	new RoomPosition( 0, 49, roomObj.name),
 				7:	new RoomPosition( 0,  0, roomObj.name)
 			}
-			let exits = Game.map.describeExits(roomObj.name)
-			let wallSpots = []
 
-			for (let exitID in exits) {
+			function getWalls(exitID) {
 				let startLocation = startLocations[exitID]
-				let endLocation = endLocations[exitID]
+				let endLocation = 	endLocations[exitID]
+
 				let path = PathFinder.primitivePathfind(startLocation, endLocation, distanceWallsExits)
 				let spots = _.filter(path, s => roomTerrain.get(s.x, s.y) != TERRAIN_MASK_WALL)
-				wallSpots.push(...spots)
+
+				for (let spot of spots) {
+					let serializedSpot = RoomPosition.serialize(spot)
+					if (!wallSpots.includes(serializedSpot)) {
+						wallSpots.push(serializedSpot)
+					}
+				}
+
+				return `\tgetDistanceWalls\t${exitID}`
+			}
+
+			for (let exitID in exits) {
+				yield getWalls(exitID)
 			}
 
 			persists['wallSpots'] = wallSpots
 			outObj['wallSpots'] = wallSpots
-			return wallSpots
+			return 'generateWallLocations'
 		}
-		let getInterior = function() {
+		function* getInterior() {
 			let interiorMap = new PathFinder.CostMatrix
 
-			// This flood fill is done in two steps
+			// This flood fill is done in three steps
 			// Step 1: Flood fill from exits until we reach walls
 			// Step 2: Flood fill from walls until they're no spots left
+			// Step 3: Optional. Flood fill from exits, but only if Step 2 mutated serializedWalls
 
-			let serializedWalls = _.map(persists['wallSpots'], s => RoomPosition.serialize(s))
+			let serializedWalls = persists['wallSpots']
 			let serializedExits = _.map(roomObj.find(FIND_EXIT), s => RoomPosition.serialize(s))
 
-			let exitFoundWalls = []
-			let wallFoundWalls = []
+			let initExitHash = {}
+			let needsStep3 = false
 
-			// Seed the flood fills
-			let exitToVisit = serializedExits
-			let exitHash = {}
-
-			// Initialize hashes
-			for (let position of exitToVisit) {
-				exitHash[position] = {
-					from:			null
-				}
-			}
-
-			// Start the exit floodfill
-			let exitDone = false
-			while (!exitDone) {
-				let next = []				
-				for (let visiting of exitToVisit) {
-					let positionObject = RoomPosition.parse(visiting)
-
-					interiorMap.set(positionObject.x, positionObject.y, 255)
-
-					// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
-					let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
-					for (let target of adjacentPositions) {
-
-						// Is this on a wall?
-						if (serializedWalls.includes(target)) {
-							if (!exitFoundWalls.includes(target)) {
-								exitFoundWalls.push(target)
-							}
-							continue
-						}
-
-						// Have we already looked at this?
-						if (_.has(exitHash, target)) {
-							continue
-						}
-
-						exitHash[target] = {
-							from: visiting
-						}
-
-						next.push(target)
-					}
-				}
-
-				// Are all valid positions already calculated?
-				if (next.length == 0) {
-					exitDone = true
-				}
-				// We compute all of the positions in `exitToVisit` before moving on to the next depth
-				exitToVisit = next
-			}
-
-			// Set walls to be walls we found from this flood fill (filters out interior walls)
-			let exitFoundWallObjs = _.map(exitFoundWalls, s => RoomPosition.parse(s))
-			persists['wallSpots'] = exitFoundWallObjs
-			outObj['wallSpots'] = exitFoundWallObjs
-			serializedWalls = exitFoundWalls
-
-			let wallToVisit = serializedWalls
-			let wallHash = {}
-
-			// Initialize wallHash
-			for (let position of wallToVisit) {
-				wallHash[position] = {
-					score: 	0,
-					from:	null
-				}
-			}
-			// Start the wall floodfill
-			let wallDone = false
-			while (!wallDone) {
-				let next = []
+			function exitFloodFill() {
+				let foundWalls = []
 				
-				for (let visiting of wallToVisit) {
-					let positionObject = RoomPosition.parse(visiting)
+				let toVisit = serializedExits
+				let hash = {}
 
-					interiorMap.set(positionObject.x, positionObject.y, wallHash[visiting].score)
-					
-					// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
-					let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
-					for (let target of adjacentPositions) {
-						let [from, score] = [visiting, wallHash[visiting].score+1]
+				// Initialize hash
+				for (let position of toVisit) {
+					hash[position] = {from: null}
+				}
 
-						// Is this in our exitHash?
-						if (_.has(exitHash, target)) {
-							continue
-						}
+				let done = false
+				while (!done) {
+					let next = []
+					for (let visiting of toVisit) {
+						let positionObject = RoomPosition.parse(visiting)
+	
+						interiorMap.set(positionObject.x, positionObject.y, 255)
+	
+						// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
+						let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
+						for (let target of adjacentPositions) {
+	
+							// Is this on a wall?
+							if (serializedWalls.includes(target)) {
+								if (!foundWalls.includes(target)) {
+									foundWalls.push(target)
+								}
 
-						// Is this on a wall?
-						if (serializedWalls.includes(target)) {
-							if (!wallFoundWalls.includes(target)) {
-								wallFoundWalls.push(target)
-							}
-							continue
-						}
-
-						if (_.has(wallHash, target)) {
-							if (score < wallHash[target].score) {
-								wallHash[target].score = score
-								wallHash[target].from = visiting
-							}
-							else {
 								continue
 							}
+	
+							// Have we already looked at this?
+							if (_.has(hash, target)) {
+								continue
+							}
+	
+							hash[target] = {
+								from: visiting
+							}
+	
+							next.push(target)
 						}
+					}
+	
+					// Are all valid positions already calculated?
+					if (next.length == 0) {
+						done = true
+					}
+					// We compute all of the positions in `toVisit` before moving on to the next depth
+					toVisit = next
+				}
 
-						// Initialize object to live in wallHash
-						wallHash[target] = {
-							from:			from,
-							score:			score
-						}
+				console.log(`\texitFloodFill found ${foundWalls.length} walls`)
 
-						next.push(target)
+				initExitHash = hash
+				serializedWalls = foundWalls
+				return `\texitFloodFill`
+			}
+			function wallFloodFill() {
+				let foundWalls = []
+
+				let toVisit = serializedWalls
+				let hash = {}
+
+				// Initialize hash
+				for (let position of toVisit) {
+					hash[position] = {
+						from: null,
+						score: 0
 					}
 				}
 
-				// Are all valid positions already calculated?
-				if (next.length == 0) {
-					wallDone = true
+				let done = false
+				while (!done) {
+					let next = []
+					
+					for (let visiting of toVisit) {
+						let positionObject = RoomPosition.parse(visiting)
+	
+						interiorMap.set(positionObject.x, positionObject.y, hash[visiting].score)
+						
+						// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
+						let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
+						for (let target of adjacentPositions) {
+							let [from, score] = [visiting, hash[visiting].score+1]
+	
+							// Is this in our exitHash?
+							if (_.has(initExitHash, target)) {
+								continue
+							}
+	
+							// Is this on a wall?
+							if (serializedWalls.includes(target) && !serializedWalls.includes(visiting)) {
+								if (!foundWalls.includes(target)) {
+									foundWalls.push(target)
+								}
+								continue
+							}
+	
+							if (_.has(hash, target)) {
+								if (score < hash[target].score) {
+									hash[target].score = 	score
+									hash[target].from = 	visiting
+								}
+								else {
+									continue
+								}
+							}
+	
+							// Initialize object to live in hash
+							hash[target] = {
+								from:	from,
+								score:	score
+							}
+	
+							next.push(target)
+						}
+					}
+	
+					// Are all valid positions already calculated?
+					if (next.length == 0) {
+						done = true
+					}
+					// We compute all of the positions in `toVisit` before moving on to the next depth
+					toVisit = next
 				}
-				// We compute all of the positions in `toVisit` before moving on to the next depth
-				wallToVisit = next
+
+				console.log(`\twallFloodFill found ${foundWalls.length} walls`)
+				if (foundWalls.length != serializedWalls.length) console.log(`\twallFloodFill changed serializedWalls`)
+
+				needsStep3 = foundWalls.length == serializedWalls.length
+				serializedWalls = foundWalls
+
+				return `\twallFloodFill`
 			}
-
-			// Set walls to foundWalls (filters out exterior walls that don't touch interior)
-			let wallFoundWallObj = _.map(wallFoundWalls, s => RoomPosition.parse(s))
-			persists['wallSpots'] = wallFoundWallObj
-			outObj['wallSpots'] = wallFoundWallObj
-			serializedWalls = wallFoundWalls
-
-			// One final pass to set wall positions to 255
-			for (let i = 0; i < 50; i++) {
-				for (let j = 0; j < 50; j++) {
-					if (roomTerrain.get(i, j) == TERRAIN_MASK_WALL) {
-						interiorMap.set(i, j, 255)
+			function setTerrain() {
+				// One final pass to set wall positions to 255
+				for (let i = 0; i < 50; i++) {
+					for (let j = 0; j < 50; j++) {
+						if (roomTerrain.get(i, j) == TERRAIN_MASK_WALL) {
+							interiorMap.set(i, j, 255)
+						}
 					}
 				}
+				
+				return `\tsetTerrain`
 			}
 
-			// Interior map is the visualized cost matrix
+			console.log(`1\t${serializedWalls.length}`)
+			yield exitFloodFill()
+			console.log(`2\t${serializedWalls.length}`)
+			yield wallFloodFill()
+			console.log(`3\t${serializedWalls.length}`)
+			if (needsStep3) yield exitFloodFill()
+			console.log(`4\t${serializedWalls.length}`)
+			yield setTerrain()
+			console.log(serializedWalls.length)
+			console.log(`5\t${serializedWalls.length}`)
+
+			persists['wallSpots'] = serializedWalls
+			outObj['wallSpots'] = serializedWalls
+
 			persists['interior'] = interiorMap
 			outObj['interior'] = interiorMap.serialize()
-			return interiorMap
+
+			return `getInterior`
 		}
 
 		yield getDistanceWalls()
 		yield getDistanceExits()
 		yield getDistanceWallsExits()
-		yield generateWallLocations()
-		yield getInterior()
+		yield* generateWallLocations()
+		yield* getInterior()
 		return outObj
 	}
 }
