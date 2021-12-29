@@ -48,6 +48,8 @@ class Imperium {
 		for (let sectorID in this.sectors) {
 			this.sectors[sectorID].run()
 		}
+
+		this.draw()
 	}
 
 	// Expansion
@@ -66,6 +68,18 @@ class Imperium {
 				this.addSector(ownedRooms[roomIdx].name)
 				this.sectors[ownedRooms[roomIdx].name].init()
 			}
+		}
+	}
+
+	// Fluff
+	draw() {
+		for (let sectorName in this.visuals) {
+			if (Game.time > this.visuals[sectorName].expires) {
+				delete this.visuals[sectorName]
+				continue
+			}
+
+			Game.rooms[sectorName].visual.import(this.visuals[sectorName].visual)
 		}
 	}
 }

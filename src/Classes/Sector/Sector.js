@@ -209,11 +209,15 @@ class Sector {
 		if (yieldObj.done) {
 			console.log(`${this.name} finished room planning`)
 			Imperium.sectors[this.name].planInfo = yieldObj.value
+			
+			RoomVisual.drawPositions(yieldObj.value['wallSpots'], this.name)
+
 			delete global[id]
 		}
 	}
 	*_plan() {
 		let persists = {}
+		let outObj = {}
 
 		let roomObj = Game.rooms[this.name]
 		let roomTerrain = roomObj.getTerrain()
@@ -311,7 +315,7 @@ class Sector {
 					if (roomTerrain.get(x, y) == TERRAIN_MASK_WALL) {
 						distanceExits.set(x, y, 0)
 					}
-					else if ([0, 1].includes(distanceExits.get(x, y))) {
+					else if ([0, 1, 2].includes(distanceExits.get(x, y))) {
 						distanceExits.set(x, y, 255)
 					}
 					else {
@@ -371,24 +375,27 @@ class Sector {
 				5:		Game.rooms[roomObj.name].find(FIND_EXIT_BOTTOM),
 				7:		Game.rooms[roomObj.name].find(FIND_EXIT_LEFT)
 			}
-			let wallsPaths = {}
+			let wallSpots = []
 
 			for (let exitID in exits) {
 				let startLocation = startLocations[exitID]
 				let endLocation = endLocations[exitID]
 				let path = PathFinder.primitivePathfind(startLocation, endLocation, distanceWallsExits)
-				wallsPaths[exitID] = path
+				let spots = _.filter(path, s => roomTerrain.get(s.x, s.y) != TERRAIN_MASK_WALL)
+				wallSpots.push(...spots)
+				console.log(wallSpots.length)
 			}
 
-			persists['wallsPaths'] = JSON.stringify(wallsPaths)
-			return wallsPaths
+			persists['wallSpots'] = wallSpots
+			outObj['wallSpots'] = wallSpots
+			return wallSpots
 		}
 
 		yield getDistanceWalls()
 		yield getDistanceExits()
 		yield getDistanceWallsExits()
 		yield generateWallLocations()
-		return persists
+		return outObj
 	}
 }
 global.Sector = Sector
