@@ -55,59 +55,39 @@ RoomVisual.drawPath = function(path, roomName) {
 RoomVisual.drawPositions = function(serializedPositions, roomName) {
 	let RV = new RoomVisual(roomName)
 	let positions = _.map(serializedPositions, s => RoomPosition.parse(s))
-	blobs = positions.reduce((prev, curr) => {
-		if (prev.length) {
-			let isAdjacent = _.some(prev[prev.length-1], s => curr.getRangeTo(s) == 1)
-			if (isAdjacent) {
-				prev[prev.length-1].push(curr)
-			}
-			else {
-				prev.push([curr])
-			}
-		}
-		else {
-			prev.push([curr])
-		}
 
-		return prev
-	}, [])
-
-	for (let blob of blobs) {
-		let serializeMap = _.map(blob, s => RoomPosition.serialize(s))
-
-		for (let posObj of blob) {
-			RV.rect(posObj.x-0.5, posObj.y-0.5, 1, 1, {
-				opacity: 0.2
+	for (let position of positions) {
+		RV.rect(position.x-0.5, position.y-0.5, 1, 1, {
+			opacity: 0.2
+		})
+		let top = RoomPosition.serialize(position.add(0, -1))
+		let right = RoomPosition.serialize(position.add(1, 0))
+		let bottom = RoomPosition.serialize(position.add(0, 1))
+		let left = RoomPosition.serialize(position.add(-1, 0))
+		
+		if (!serializedPositions.includes(top)) {
+			RV.line(position.x-0.5, position.y-0.5, position.x+0.5, position.y-0.5, {
+				width: 0.1,
+				opacity: 0.8
 			})
-			let top = RoomPosition.serialize(posObj.add(0, -1))
-			let right = RoomPosition.serialize(posObj.add(1, 0))
-			let bottom = RoomPosition.serialize(posObj.add(0, 1))
-			let left = RoomPosition.serialize(posObj.add(-1, 0))
-			
-			if (!serializeMap.includes(top)) {
-				RV.line(posObj.x-0.5, posObj.y-0.5, posObj.x+0.5, posObj.y-0.5, {
-					width: 0.1,
-					opacity: 0.8
-				})
-			}
-			if (!serializeMap.includes(right)) {
-				RV.line(posObj.x+0.5, posObj.y-0.5, posObj.x+0.5, posObj.y+0.5, {
-					width: 0.1,
-					opacity: 0.8
-				})
-			}
-			if (!serializeMap.includes(bottom)) {
-				RV.line(posObj.x+0.5, posObj.y+0.5, posObj.x-0.5, posObj.y+0.5, {
-					width: 0.1,
-					opacity: 0.8
-				})
-			}
-			if (!serializeMap.includes(left)) {
-				RV.line(posObj.x-0.5, posObj.y+0.5, posObj.x-0.5, posObj.y-0.5, {
-					width: 0.1,
-					opacity: 0.8
-				})
-			}
+		}
+		if (!serializedPositions.includes(right)) {
+			RV.line(position.x+0.5, position.y-0.5, position.x+0.5, position.y+0.5, {
+				width: 0.1,
+				opacity: 0.8
+			})
+		}
+		if (!serializedPositions.includes(bottom)) {
+			RV.line(position.x+0.5, position.y+0.5, position.x-0.5, position.y+0.5, {
+				width: 0.1,
+				opacity: 0.8
+			})
+		}
+		if (!serializedPositions.includes(left)) {
+			RV.line(position.x-0.5, position.y+0.5, position.x-0.5, position.y-0.5, {
+				width: 0.1,
+				opacity: 0.8
+			})
 		}
 	}
 
