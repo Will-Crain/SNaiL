@@ -37,9 +37,7 @@ PathFinder.primitivePathfind = function(startPos, endPos, costMatrix=new PathFin
 				stack = _.sortBy(stack, 'score')
 			}
 			else {
-				distances[newID] = Infinity//costMatrix.get(x, y)
-				// stack.push({score: Infinity, id: newID})
-				// stack = _.sortBy(stack, 'score')
+				distances[newID] = Infinity
 			}
 
 			previous[newID] = null
