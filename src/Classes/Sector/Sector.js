@@ -220,14 +220,14 @@ class Sector {
 			toLog = toLog.value
 		}
 
-		console.log(`${toLog}\t${used}`)
+		// console.log(`${toLog}\t${used}`)
 		
 		if (yieldObj.done) {
 			console.log(`${this.name} finished room planning`)
 			Imperium.sectors[this.name].planInfo = yieldObj.value
 			
 			RoomVisual.drawPositions(yieldObj.value['wallSpots'], this.name)
-			RoomVisual.drawGrid(PathFinder.CostMatrix.deserialize(yieldObj.value['interior']), this.name, {text: false, cutoffMin: 0, cutoffMax: 25})
+			RoomVisual.drawGrid(PathFinder.CostMatrix.deserialize(yieldObj.value['interior']), this.name, {text: false, cutoffMin: 0, cutoffMax: 255})
 
 			delete global[id]
 		}
@@ -335,8 +335,11 @@ class Sector {
 					if (roomTerrain.get(x, y) == TERRAIN_MASK_WALL) {
 						distanceExits.set(x, y, 0)
 					}
-					else if ([0, 1, 2].includes(distanceExits.get(x, y))) {
+					else if ([0, 1].includes(distanceExits.get(x, y))) {
 						distanceExits.set(x, y, 255)
+					}
+					else if ([2].includes(distanceExits.get(x, y))) {
+						distanceExits.set(x, y, 2)
 					}
 					else {
 						distanceExits.set(x, y, distanceExits.get(x, y)-1)
@@ -429,6 +432,8 @@ class Sector {
 
 			let serializedWalls = persists['wallSpots']
 			let serializedExits = _.map(roomObj.find(FIND_EXIT), s => RoomPosition.serialize(s))
+
+			console.log(`Initial wall count is ${serializedWalls.length}`)
 
 			let initExitHash = {}
 			let needsStep3 = false
@@ -562,7 +567,6 @@ class Sector {
 				}
 
 				console.log(`\twallFloodFill found ${foundWalls.length} walls`)
-				if (foundWalls.length != serializedWalls.length) console.log(`\twallFloodFill changed serializedWalls`)
 
 				needsStep3 = foundWalls.length == serializedWalls.length
 				serializedWalls = foundWalls
@@ -582,16 +586,10 @@ class Sector {
 				return `\tsetTerrain`
 			}
 
-			console.log(`1\t${serializedWalls.length}`)
 			yield exitFloodFill()
-			console.log(`2\t${serializedWalls.length}`)
 			yield wallFloodFill()
-			console.log(`3\t${serializedWalls.length}`)
 			if (needsStep3) yield exitFloodFill()
-			console.log(`4\t${serializedWalls.length}`)
 			yield setTerrain()
-			console.log(serializedWalls.length)
-			console.log(`5\t${serializedWalls.length}`)
 
 			persists['wallSpots'] = serializedWalls
 			outObj['wallSpots'] = serializedWalls
