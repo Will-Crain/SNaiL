@@ -52,8 +52,9 @@ RoomVisual.drawPath = function(path, roomName) {
 		lineStyle:	'dashed'
 	})
 }
-RoomVisual.drawPositions = function(positions, roomName) {
+RoomVisual.drawPositions = function(serializedPositions, roomName) {
 	let RV = new RoomVisual(roomName)
+	let positions = _.map(serializedPositions, s => RoomPosition.parse(s))
 	blobs = positions.reduce((prev, curr) => {
 		if (prev.length) {
 			let isAdjacent = _.some(prev[prev.length-1], s => curr.getRangeTo(s) == 1)
