@@ -1,3 +1,15 @@
+// This groups RoomPositions by all those within range 1 of one another
+blobs = positions.reduce((prev, curr) => {
+	if (prev.length && _.some(prev[prev.length-1], s => curr.getRangeTo(s) == 1)) {
+		prev[prev.length-1].push(curr)
+	}
+	else {
+		prev.push([curr])
+	}
+
+	return prev
+}, [])
+
 Creep.prototype.STATE_LOAD = function(scope) {
 	let {posStr, resource, canPop=true, unloadPosStr, alsoCheck} = scope
 	let posObj = RoomPosition.parse(posStr)
