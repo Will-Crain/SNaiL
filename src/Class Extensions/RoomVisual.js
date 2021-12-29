@@ -1,5 +1,5 @@
-RoomVisual.drawGrid = function(grid, scope={}) {
-	let {roomName, reverse=false, type='linear', cutoffMax=250, cutoffMin=0} = scope
+RoomVisual.drawGrid = function(grid, roomName, scope={}) {
+	let {reverse=false, type='linear', cutoffMax=255, cutoffMin=-1, text} = scope
     let RV = new RoomVisual(roomName)
 
 	let valueMax = _.max(grid._bits, function(s) {
@@ -7,8 +7,7 @@ RoomVisual.drawGrid = function(grid, scope={}) {
 			return s
 		}
 	})
-	// let valueMax = 100
-    
+	
     for (let i in grid._bits) {
 		if (!(grid._bits[i] < cutoffMax && grid._bits[i] > cutoffMin)) {
 			continue
@@ -33,9 +32,17 @@ RoomVisual.drawGrid = function(grid, scope={}) {
 		let l = 0.6
 		let hexColor = HSL_TO_HEX(h, s, l)
 
-		// RV.text(grid._bits[i], x, y+0.25, {stroke: '#000000', color: '#ffffff', opacity: 0.5})
+		if (text) RV.text(grid._bits[i], x, y+0.25, {stroke: '#000000', color: '#ffffff', opacity: 0.5})
 		RV.rect(x-0.5, y-0.5, 1, 1, {fill: hexColor, opacity: 0.3})
     }
+
+	if (_.isUndefined(Imperium.visuals)) {
+		Imperium.visuals = {}
+	}
+	if (_.isUndefined(Imperium.visuals[roomName])) {
+		Imperium.visuals[roomName] = []
+	}
+	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+200, init: Game.time})
 }
 RoomVisual.drawPath = function(path, roomName) {
 	let RV = new RoomVisual(roomName)
@@ -75,34 +82,26 @@ RoomVisual.drawPositions = function(positions, roomName) {
 			let right = RoomPosition.serialize(posObj.add(1, 0))
 			let bottom = RoomPosition.serialize(posObj.add(0, 1))
 			let left = RoomPosition.serialize(posObj.add(-1, 0))
-
-			console.log(top, right, bottom, left)
-			console.log(serializeMap)
-			console.log('\n')
 			
 			if (!serializeMap.includes(top)) {
-				console.log(`${RoomPosition.serialize(posObj)}, no top ${top}!`)
 				RV.line(posObj.x-0.5, posObj.y-0.5, posObj.x+0.5, posObj.y-0.5, {
 					width: 0.1,
 					opacity: 0.8
 				})
 			}
 			if (!serializeMap.includes(right)) {
-				console.log(`${RoomPosition.serialize(posObj)}, no right ${right}!`)
 				RV.line(posObj.x+0.5, posObj.y-0.5, posObj.x+0.5, posObj.y+0.5, {
 					width: 0.1,
 					opacity: 0.8
 				})
 			}
 			if (!serializeMap.includes(bottom)) {
-				console.log(`${RoomPosition.serialize(posObj)}, no bottom ${bottom}!`)
 				RV.line(posObj.x+0.5, posObj.y+0.5, posObj.x-0.5, posObj.y+0.5, {
 					width: 0.1,
 					opacity: 0.8
 				})
 			}
 			if (!serializeMap.includes(left)) {
-				console.log(`${RoomPosition.serialize(posObj)}, no left ${left}!`)
 				RV.line(posObj.x-0.5, posObj.y+0.5, posObj.x-0.5, posObj.y-0.5, {
 					width: 0.1,
 					opacity: 0.8
@@ -114,5 +113,8 @@ RoomVisual.drawPositions = function(positions, roomName) {
 	if (_.isUndefined(Imperium.visuals)) {
 		Imperium.visuals = {}
 	}
-	Imperium.visuals[roomName] = {visual: RV.export(), expires: Game.time+200}
+	if (_.isUndefined(Imperium.visuals[roomName])) {
+		Imperium.visuals[roomName] = []
+	}
+	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+200, init: Game.time})
 }

@@ -74,12 +74,19 @@ class Imperium {
 	// Fluff
 	draw() {
 		for (let sectorName in this.visuals) {
-			if (Game.time > this.visuals[sectorName].expires) {
-				delete this.visuals[sectorName]
-				continue
-			}
+			for (let idx in this.visuals[sectorName]) {
+				let visualObj = this.visuals[sectorName][idx]
 
-			Game.rooms[sectorName].visual.import(this.visuals[sectorName].visual)
+				if (Game.time > this.visuals[sectorName].expires) {
+					delete this.visuals[sectorName]
+					continue
+				}
+				if (Game.time <= this.visuals[sectorName].init+1) {
+					continue
+				}
+	
+				Game.rooms[sectorName].visual.import(visualObj.visual)
+			}
 		}
 	}
 }
