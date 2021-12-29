@@ -77,11 +77,11 @@ class Imperium {
 			for (let idx in this.visuals[sectorName]) {
 				let visualObj = this.visuals[sectorName][idx]
 
-				if (Game.time > this.visuals[sectorName].expires) {
+				if (Game.time > visualObj.expires) {
 					delete this.visuals[sectorName]
 					continue
 				}
-				if (Game.time <= this.visuals[sectorName].init+1) {
+				if (Game.time <= visualObj.init) {
 					continue
 				}
 	
