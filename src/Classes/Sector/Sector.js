@@ -198,19 +198,24 @@ class Sector {
 
 		// Did we just call plan for the first time?
 		if (!global[id]) {
-			console.log('Setting up global[id]!')
+			console.log(`Starting planning process for ${this.name}`)
+			// progress bar?
 			global[id] = {
 				generator: 	this._plan(),
 				persist: 	{}
 			}
 		}
 
+		let prevCPU = Game.cpu.getUsed()
 		let yieldObj = global[id].generator.next()
+		let used = Game.cpu.getUsed() - prevCPU
+		console.log(used.toFixed(3))
 		if (yieldObj.done) {
 			console.log(`${this.name} finished room planning`)
 			Imperium.sectors[this.name].planInfo = yieldObj.value
 			
 			RoomVisual.drawPositions(yieldObj.value['wallSpots'], this.name)
+			RoomVisual.drawGrid(PathFinder.CostMatrix.deserialize(yieldObj.value['interior']), this.name, {text: false, cutoffMin: 0, cutoffMax: 255})
 
 			delete global[id]
 		}
@@ -233,6 +238,7 @@ class Sector {
 					if (terrainAt == TERRAIN_MASK_WALL) {
 						distanceWalls.set(x, y, 0)
 					}
+
 					// Otherwise, do distanceWall calculation
 					else {
 						let toInclude = []
@@ -280,6 +286,8 @@ class Sector {
 		}
 		let getDistanceExits = function() {
 			let distanceExits = new PathFinder.CostMatrix
+
+			// This is a flood fill from room exits
 
 			let toVisit = roomObj.find(FIND_EXIT)
 			let hash = {}
@@ -332,6 +340,7 @@ class Sector {
 			let distanceWalls = PathFinder.CostMatrix.deserialize(persists['distanceWalls'])
 			let distanceExits = PathFinder.CostMatrix.deserialize(persists['distanceExits'])
 
+			// this is just the min of distanceWalls and distanceExits with some special conditions about invalid tiles
 			for (let x = 0; x < 50; x += 1) {
 				for (let y = 0; y < 50; y += 1) {
 					if (roomTerrain.get(x, y) == TERRAIN_MASK_WALL) {
@@ -357,6 +366,7 @@ class Sector {
 		let generateWallLocations = function() {
 			let distanceWallsExits = PathFinder.CostMatrix.deserialize(persists['distanceWallsExits'])
 
+			// Predefining start & end locations based on valid exit side
 			let startLocations = {
 				1: 	new RoomPosition( 0,  0, roomObj.name),
 				3:	new RoomPosition(49,  0, roomObj.name),
@@ -369,12 +379,7 @@ class Sector {
 				5:	new RoomPosition( 0, 49, roomObj.name),
 				7:	new RoomPosition( 0,  0, roomObj.name)
 			}
-			let exits = {
-				1:		Game.rooms[roomObj.name].find(FIND_EXIT_TOP),
-				3:		Game.rooms[roomObj.name].find(FIND_EXIT_RIGHT),
-				5:		Game.rooms[roomObj.name].find(FIND_EXIT_BOTTOM),
-				7:		Game.rooms[roomObj.name].find(FIND_EXIT_LEFT)
-			}
+			let exits = Game.map.describeExits(roomObj.name)
 			let wallSpots = []
 
 			for (let exitID in exits) {
@@ -383,18 +388,111 @@ class Sector {
 				let path = PathFinder.primitivePathfind(startLocation, endLocation, distanceWallsExits)
 				let spots = _.filter(path, s => roomTerrain.get(s.x, s.y) != TERRAIN_MASK_WALL)
 				wallSpots.push(...spots)
-				console.log(wallSpots.length)
 			}
 
 			persists['wallSpots'] = wallSpots
 			outObj['wallSpots'] = wallSpots
 			return wallSpots
 		}
+		let getInterior = function() {
+			let interiorMap = new PathFinder.CostMatrix
+
+			// wallHash is all of the wall positions we calculated from generateWallLocations, and we map them to strings
+			let wallHash = _.map(persists['wallSpots'], s => RoomPosition.serialize(s))
+
+			// Seed the flood fill
+			let toVisit = roomObj.find(FIND_EXIT).map(s => RoomPosition.serialize(s))
+			let hash = {}
+
+			// Initialize hash with our seed
+			for (let position of toVisit) {
+				hash[position] = {
+					hasCrossed: 	false,
+					serPos: 		RoomPosition.serialize(position),
+					from:			null,
+					score: 			255
+				}
+			}
+
+			// Start the floodfill
+			let done = false
+			while (!done) {
+				let next = []
+				
+				for (let visiting of toVisit) {
+					let positionObject = RoomPosition.parse(visiting)
+
+					interiorMap.set(positionObject.x, positionObject.y, hash[visiting].score)
+
+					// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
+					// In this case, I requested that they are returned already in string form (for easy comparisons)
+					let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
+					for (let target of adjacentPositions) {
+						let [hasCrossed, from, serPos, score] = [hash[visiting].hasCrossed, visiting, target, 255]
+
+						// Is this on a wall?
+						if (wallHash.includes(target)) {
+							score = 0
+							hasCrossed = true
+						}
+
+						// Was our last position not invalid?
+						else if (hash[visiting].score != 255) {
+							score = hash[from].score + 1
+						}
+						
+						// If our hash has this position already, lets check if it needs updating
+						if (_.has(hash, target)) {
+							
+							// Update if it's not a wall or outside AND the value we want to change it to is smaller than the value it already is
+							if (score < hash[target].score && hash[target].score != 255) {
+								score = Math.min(score, hash[target].score)
+							}
+							else {
+								continue
+							}
+						}
+
+						// Initialize object to live in hash
+						hash[target] = {
+							hasCrossed:		hasCrossed,
+							from:			from,
+							serPos:			serPos,
+							score:			score
+						}
+
+						next.push(target)
+					}
+				}
+
+				// Are all valid positions already calculated?
+				if (next.length == 0) {
+					done = true
+				}
+				// We compute all of the positions in `toVisit` before moving on to the next depth
+				toVisit = next
+			}
+
+			// One final pass to set wall positions to 255
+			for (let i = 0; i < 50; i++) {
+				for (let j = 0; j < 50; j++) {
+					if (roomTerrain.get(i, j) == TERRAIN_MASK_WALL) {
+						interiorMap.set(i, j, 255)
+					}
+				}
+			}
+
+			// Interior map is the visualized cost matrix
+			persists['interior'] = interiorMap
+			outObj['interior'] = interiorMap.serialize()
+			return interiorMap
+		}
 
 		yield getDistanceWalls()
 		yield getDistanceExits()
 		yield getDistanceWallsExits()
 		yield generateWallLocations()
+		yield getInterior()
 		return outObj
 	}
 }
