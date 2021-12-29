@@ -176,11 +176,16 @@ class Sector {
 
 			let targetCreep = this.spawnQueue[spawnIdx]
 			let spawnCheck = spawner.createCreep(targetCreep.body, targetCreep.name, targetCreep.memory)
-			let illegalErrors = [-1, -3, -10, -14]
+			let illegalErrors = [-1, -10, -14]
+			let popErrors = [-3]
 
 			if (illegalErrors.includes(spawnCheck)) {
 				console.log(`${targetCreep.name} can't spawn in ${this.name}\t${spawnCheck}`)
 				continue
+			}
+			if (popErrors.includes(spawnCheck)) {
+				this.spawnQueue.shift()
+				delete this.spawnHash[targetCreep.name]
 			}
 			let warnErrors = [-4, -6]
 			if (warnErrors.includes(spawnCheck)) {
@@ -397,67 +402,126 @@ class Sector {
 		let getInterior = function() {
 			let interiorMap = new PathFinder.CostMatrix
 
-			// wallHash is all of the wall positions we calculated from generateWallLocations, and we map them to strings
-			let wallHash = _.map(persists['wallSpots'], s => RoomPosition.serialize(s))
+			// This flood fill is done in two steps
+			// Step 1: Flood fill from exits until we reach walls
+			// Step 2: Flood fill from walls until they're no spots left
 
-			// Seed the flood fill
-			let toVisit = roomObj.find(FIND_EXIT).map(s => RoomPosition.serialize(s))
-			let hash = {}
+			let serializedWalls = _.map(persists['wallSpots'], s => RoomPosition.serialize(s))
+			let serializedExits = _.map(roomObj.find(FIND_EXIT), s => RoomPosition.serialize(s))
 
-			// Initialize hash with our seed
-			for (let position of toVisit) {
-				hash[position] = {
-					hasCrossed: 	false,
-					serPos: 		RoomPosition.serialize(position),
-					from:			null,
-					score: 			255
+			let exitFoundWalls = []
+			let wallFoundWalls = []
+
+			// Seed the flood fills
+			let exitToVisit = serializedExits
+			let exitHash = {}
+
+			// Initialize hashes
+			for (let position of exitToVisit) {
+				exitHash[position] = {
+					from:			null
 				}
 			}
 
-			// Start the floodfill
-			let done = false
-			while (!done) {
-				let next = []
-				
-				for (let visiting of toVisit) {
+			// Start the exit floodfill
+			let exitDone = false
+			while (!exitDone) {
+				let next = []				
+				for (let visiting of exitToVisit) {
 					let positionObject = RoomPosition.parse(visiting)
 
-					interiorMap.set(positionObject.x, positionObject.y, hash[visiting].score)
+					interiorMap.set(positionObject.x, positionObject.y, 255)
 
 					// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
-					// In this case, I requested that they are returned already in string form (for easy comparisons)
 					let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
 					for (let target of adjacentPositions) {
-						let [hasCrossed, from, serPos, score] = [hash[visiting].hasCrossed, visiting, target, 255]
 
 						// Is this on a wall?
-						if (wallHash.includes(target)) {
-							score = 0
-							hasCrossed = true
+						if (serializedWalls.includes(target)) {
+							if (!exitFoundWalls.includes(target)) {
+								exitFoundWalls.push(target)
+							}
+							continue
 						}
 
-						// Was our last position not invalid?
-						else if (hash[visiting].score != 255) {
-							score = hash[from].score + 1
+						// Have we already looked at this?
+						if (_.has(exitHash, target)) {
+							continue
 						}
-						
-						// If our hash has this position already, lets check if it needs updating
-						if (_.has(hash, target)) {
-							
-							// Update if it's not a wall or outside AND the value we want to change it to is smaller than the value it already is
-							if (score < hash[target].score && hash[target].score != 255) {
-								score = Math.min(score, hash[target].score)
+
+						exitHash[target] = {
+							from: visiting
+						}
+
+						next.push(target)
+					}
+				}
+
+				// Are all valid positions already calculated?
+				if (next.length == 0) {
+					exitDone = true
+				}
+				// We compute all of the positions in `exitToVisit` before moving on to the next depth
+				exitToVisit = next
+			}
+
+			// Set walls to be walls we found from this flood fill (filters out interior walls)
+			let exitFoundWallObjs = _.map(exitFoundWalls, s => RoomPosition.parse(s))
+			persists['wallSpots'] = exitFoundWallObjs
+			outObj['wallSpots'] = exitFoundWallObjs
+			serializedWalls = exitFoundWalls
+
+			let wallToVisit = serializedWalls
+			let wallHash = {}
+
+			// Initialize wallHash
+			for (let position of wallToVisit) {
+				wallHash[position] = {
+					score: 	0,
+					from:	null
+				}
+			}
+			// Start the wall floodfill
+			let wallDone = false
+			while (!wallDone) {
+				let next = []
+				
+				for (let visiting of wallToVisit) {
+					let positionObject = RoomPosition.parse(visiting)
+
+					interiorMap.set(positionObject.x, positionObject.y, wallHash[visiting].score)
+					
+					// getAdjacent just returns 8 tiles (but filtered to not include those blocked by terrain).
+					let adjacentPositions = positionObject.getAdjacent({serialize: true, checkTerrain: true})
+					for (let target of adjacentPositions) {
+						let [from, score] = [visiting, wallHash[visiting].score+1]
+
+						// Is this in our exitHash?
+						if (_.has(exitHash, target)) {
+							continue
+						}
+
+						// Is this on a wall?
+						if (serializedWalls.includes(target)) {
+							if (!wallFoundWalls.includes(target)) {
+								wallFoundWalls.push(target)
+							}
+							continue
+						}
+
+						if (_.has(wallHash, target)) {
+							if (score < wallHash[target].score) {
+								wallHash[target].score = score
+								wallHash[target].from = visiting
 							}
 							else {
 								continue
 							}
 						}
 
-						// Initialize object to live in hash
-						hash[target] = {
-							hasCrossed:		hasCrossed,
+						// Initialize object to live in wallHash
+						wallHash[target] = {
 							from:			from,
-							serPos:			serPos,
 							score:			score
 						}
 
@@ -467,11 +531,17 @@ class Sector {
 
 				// Are all valid positions already calculated?
 				if (next.length == 0) {
-					done = true
+					wallDone = true
 				}
 				// We compute all of the positions in `toVisit` before moving on to the next depth
-				toVisit = next
+				wallToVisit = next
 			}
+
+			// Set walls to foundWalls (filters out exterior walls that don't touch interior)
+			let wallFoundWallObj = _.map(wallFoundWalls, s => RoomPosition.parse(s))
+			persists['wallSpots'] = wallFoundWallObj
+			outObj['wallSpots'] = wallFoundWallObj
+			serializedWalls = wallFoundWalls
 
 			// One final pass to set wall positions to 255
 			for (let i = 0; i < 50; i++) {
