@@ -107,7 +107,7 @@ module.exports = function(grunt) {
 	})
 
 	grunt.registerTask('default',	['clean', 'copy', 'makeRequireFile', 'screeps'])
-	grunt.registerTask('private',	['clean', 'clean:private', 'copy', 'makeRequireFile', 'copy:private'])
+	grunt.registerTask('private',	['clean', 'makeRequireFile', 'clean:private', 'copy', 'copy:private'])
 
 	/*
 	if you want to use grunt, you'll have to navigate to this folder (cd Documents/GitHub/SNaiL for me)
