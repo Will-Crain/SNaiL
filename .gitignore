@@ -5,3 +5,4 @@ dist
 .vscode
 package.json
 package-lock.json
+test.html
