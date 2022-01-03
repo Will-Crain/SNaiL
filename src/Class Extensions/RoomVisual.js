@@ -99,3 +99,31 @@ RoomVisual.drawPositions = function(serializedPositions, roomName) {
 	}
 	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+200, init: Game.time})
 }
+
+RoomVisual.drawPolygons = function(polygons, roomName) {
+	let RV = new RoomVisual(roomName)
+	for (let polygon of polygons) {
+		let randColor = Math.floor(Math.random()*16777215).toString(16)
+		for (let node of polygon.nodes) {
+			let posObj = RoomPosition.parse(node)
+			RV.rect(posObj.x-0.5, posObj.y-0.5, 1, 1, {
+				opacity: 	0.25,
+				fill:		`#${randColor}`
+			})
+		}
+		for (let node of polygon.edges) {
+			let posObj = RoomPosition.parse(node)
+			RV.rect(posObj.x-0.5, posObj.y-0.5, 1, 1, {
+				opacity: 0.25
+			})
+		}
+	}
+
+	if (_.isUndefined(Imperium.visuals)) {
+		Imperium.visuals = {}
+	}
+	if (_.isUndefined(Imperium.visuals[roomName])) {
+		Imperium.visuals[roomName] = []
+	}
+	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+20, init: Game.time})
+}
