@@ -3,13 +3,10 @@ RoomPosition.serialize = function(pos) {
 	let y = pos.y
 	let name = pos.roomName
 	
-	if (x < 10) {
-		x = '0' + String(x)
-	}
-	if (y < 10) {
-		y = '0' + String(y)
-	}
-	return String(String(x) + String(y) + name)
+	if (x < 10) `0${x}`
+	if (y < 10) `0${y}`
+
+	return `${x}${y}${name}`
 }
 RoomPosition.parse = function(serPos) {
 	let x = Number(serPos.substring(0, 2))
