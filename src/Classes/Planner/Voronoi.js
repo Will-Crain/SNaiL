@@ -10,282 +10,206 @@ function makeID() {
 }
 
 class Voronoi {
-	constructor(drawOffset=new Point(0, 0)) {
+	constructor(scope) {
+		let {drawOffset=new Point(100, 100), scale=1} = scope
+
 		this.drawOffset = drawOffset
 
-		this.edgeMap = {}
-		this.pointMap = {}
-
+		this.points = []
+		this.edges = []
 		this.regions = []
 
+		this.bounds = [0, 49]
+
 		this.toDraw = []
+		this.scale = scale
 
-		this.init()
 		return this
-
 	}
+
+
 	/**
-	 * @name init Initializes the diagram with 4 regions
+	 * @name intersections
+	 * @param {Point} site The site we're considering
+	 * @param {Region} region The region we're considering
+	 * @returns {Object} An object containing intersection information
 	 */
-	init() {
-		let regionPoints = [new Point(-50, -50), new Point(-50, 100), new Point(100, -50), new Point(100, 100)]
-		let points = [
-			new Point(24.5, 24.5),
-	
-			new Point(-100.5, 24.5),
-			new Point( 148.5, 24.5),
-	
-			new Point(24.5, -100.5),
-			new Point(24.5,  148.5)
-	
-		]
-		let edges = [ 
-			new Edge([points[0], points[1]]),
-			new Edge([points[1], points[3]]),
-			new Edge([points[3], points[0]]),
-			new Edge([points[1], points[4]]),
-			new Edge([points[4], points[0]]),
-	
-			new Edge([points[0], points[2]]),
-			new Edge([points[2], points[3]]),
-			new Edge([points[2], points[4]])
-		]
-	
-		let regions = [
-			new Region(regionPoints[0], [edges[0], edges[1], edges[2]]),
-			new Region(regionPoints[1], [edges[0], edges[3], edges[4]]),
-			new Region(regionPoints[2], [edges[5], edges[6], edges[2]]),
-			new Region(regionPoints[3], [edges[5], edges[7], edges[4]])
-		]
+	intersections(site, region) {
+		let intersections = []
 
-		this.regions = regions
+		// Generate `connector` and `bisector`
+		let connector = new Edge([site, region.center])
+		let bisector = connector.bisector()
 
-		// Now that everything is initialized, link it
-		this.updateMaps()
-	}
-	testInit0() {
-		let points = [
-			new Point(0, 0),
-			new Point(49, 0),
-			new Point(49, 49),
-			new Point(0, 49)
-		]
-		let edges = [ 
-			new Edge([points[0], points[1]]),
-			new Edge([points[1], points[2]]),
-			new Edge([points[2], points[3]]),
-			new Edge([points[3], points[0]])
-		]
-		let region = new Region(new Point(0, 0), [edges[0], edges[1], edges[2], edges[3]])
-		this.regions = [region]
+		for (let edge of region.edges) {
 
-		// Now that everything is initialized, link it
-		this.updateMaps()
-
-	}
-	testInit1() {
-		this.DCEL = {
-			regions:	[],
-			vertices:	[],
-			edges:		[]
-		}
-
-		this.DCEL.regions =		[
-			new Point(24.5, -100), new Point(150, 24.5), new Point(24.5, 150), new Point(-100, 24.5)
-		]
-		this.DCEL.vertices =	[
-
-		]
-		this.DCEL.edges = 		[
+			// Get an intercept, or early continue if it doesn't exist
+			let interception = bisector.intercept(edge, edge.midPoint)
+			if (!interception) continue
 			
-		]
-		for (let region of newRegions) {
-			this.DCEL.regions.push({
-				point: region
+			// this.toDraw.push(connector.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[0]}))
+			// this.toDraw.push(bisector.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[1]}))
+			// this.toDraw.push(region.center.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[2]}))
+
+			let targetRegion = this.regions.find(function(targetRegion) {
+				targetRegion.edges.find(function(targetEdge) {
+					return targetEdge.id == edge.id
+				})
+			})
+
+			// Add intercept to hash
+			intersections.push({
+				point: interception,
+				edge: edge,
+				region: targetRegion
 			})
 		}
 
-		
-	}
-	testInit2() {
-		let regionPoints = [new Point(0, 0), new Point(0, 49), new Point(49, 49), new Point(49, 0)]
-		let points = [
-			new Point(24.5, 24.5),
-	
-			new Point( 0, 24.5),
-			new Point(49, 24.5),
-	
-			new Point(24.5,  0),
-			new Point(24.5,  49)
-	
-		]
-		let edges = [ 
-			new Edge([points[0], points[1]]),
-			new Edge([points[1], points[3]]),
-			new Edge([points[3], points[0]]),
-			new Edge([points[1], points[4]]),
-			new Edge([points[4], points[0]]),
-	
-			new Edge([points[0], points[2]]),
-			new Edge([points[2], points[3]]),
-			new Edge([points[2], points[4]])
-		]
-	
-		let regions = [
-			new Region(regionPoints[0], [edges[0], edges[1], edges[2]]),
-			new Region(regionPoints[1], [edges[0], edges[3], edges[4]]),
-			new Region(regionPoints[2], [edges[5], edges[6], edges[2]]),
-			new Region(regionPoints[3], [edges[5], edges[7], edges[4]])
-		]
-
-		this.regions = regions
-
-		// Now that everything is initialized, link it
-		this.updateMaps()
-	}
-
-	updateMaps() {
-		this.edgeMap = {}
-		this.pointMap = {}
-
-		for (let region of this.regions) {
-			for (let edge of region.edges) {
-				if (!this.edgeMap[edge.id]) this.edgeMap[edge.id] = []
-				if (!this.edgeMap[edge.id].includes(region.id)) this.edgeMap[edge.id].push(region.id)
-
-				for (let point of edge.points) {
-					if (!this.pointMap[point.id]) this.pointMap[point.id] = []
-					if (!this.pointMap[point.id].includes(point.id)) this.pointMap[point.id].push(point.id)
-				}
-			}
-		}
+		return intersections
 	}
 
 	addSite(site) {
 		this.toDraw = []
+		// Special case where this is the first site in the graph
+		if (this.regions.length == 0) {
+			// Initialize points at boundaries
+			this.points = [
+				new Point(this.bounds[0], this.bounds[0]),
+				new Point(this.bounds[1], this.bounds[0]),
+				new Point(this.bounds[1], this.bounds[1]),
+				new Point(this.bounds[0], this.bounds[1])
+			]
+			this.edges = [ 
+				new Edge([this.points[0], this.points[1]]),
+				new Edge([this.points[1], this.points[2]]),
+				new Edge([this.points[2], this.points[3]]),
+				new Edge([this.points[3], this.points[0]])
+			]
+			let region = new Region(site, [this.edges[0], this.edges[1], this.edges[2], this.edges[3]])
+			this.regions = [region]
 
-		let closestRegion = site.getNearestRegion(this.regions)
-		
-		// this.toDraw.push(site.getStr(this.drawOffset, 'black'))
+			return
+		}
 
-		let bisectors = {}
-		
+		let newRegion = new Region(site)
+
+		// If this isn't the first site, continue as normal
+		let closestRegion = site.nearestRegion(this.regions)
+
+
+		let intersections = {}
+
 		let visitedRegions = []
 		let regionsToCheck = [closestRegion]
-		
+
 		while (regionsToCheck.length > 0) {
 			let region = regionsToCheck.shift()
-			if (visitedRegions.includes(region.id)) continue
-			
-			// Generate `connector` and `bisector`
-			let connector = new Edge([site, region.center])
-			let bisector = connector.getBisector()
 
-			// Some drawing
-			let color = colors[visitedRegions.length]
-			this.toDraw.push(connector.getStr(this.drawOffset, 1, color))
-			this.toDraw.push(bisector.getStr(this.drawOffset, 3, color))
-			this.toDraw.push(region.center.getStr(this.drawOffset, color))
-			
-			// Find the edges the bisector intersects in this region
-			for (let edge of region.edges) {
-				
-				// Get our intercept, or early continue
-				let interception = bisector.getIntercept(edge, edge.midPoint)
-				if (!interception) continue
+			let intercepts = this.intersections(site, region)
+			intersections[region.id] = intercepts
 
-				// this.toDraw.push(interception.getStr(color))
+			// Iterate through intercepts, check if we need to check more
+			for (let intercept of intercepts) {
 
-				// Add this region's intercepts to the hash
-				if (!bisectors[region.id]) bisectors[region.id] = []
-				bisectors[region.id].push({
-					point: interception, 
-					edge: edge
-				})
+				// Check if there's a region on the other side of our intercepted edge
+				if (!intercept.region) continue
 
-				// Add this region to our visited region hash
-				if (!visitedRegions.includes(region.id)) visitedRegions.push(region.id)
-
-				let otherRegionID = this.edgeMap[edge.id].find(rId => rId != region.id)
-				let otherRegion = this.regions.find(s => s.id == otherRegionID)
-				if (!otherRegion || !otherRegionID) continue
-
-				// Have we already visited the region where this edge leads?
-				if (!visitedRegions.includes(otherRegionID) && !regionsToCheck.includes(otherRegionID)) {
-					regionsToCheck.push(otherRegion)
+				// If there is a region, mark it to be checked
+				if (!visitedRegions.includes(intercept.region.id)) {
+					regionsToCheck.push(intercept.region)
 				}
 			}
+			
+			// Add this region to our checked regions list
+			visitedRegions.push(region.id)
 		}
+
+		// console.log(util.inspect(intersections, false, 7) + '\n\n\n\n')
 	
-		// Now iterate through `bisectors` and create new edges and mutate existing edges
+		// Now we iterate through `intersections` and create edges
 		let visitedEdges = {}
 		let newEdges = []
 
-		for (let regionID in bisectors) {
+
+		for (let regionID in intersections) {
+			let targetRegion = this.regions.find(s => s.id == regionID)
 			let newEdge = new Edge()
 
-			for (let intercept of bisectors[regionID]) {
-				
-				// Have we seen this edge already?
+			let slicedEdges = []
+
+			// Split the existing edge on `intercept.point`
+			for (let intercept of intersections[regionID]) {
 				if (visitedEdges[intercept.edge.id]) {
-					// Assign an existing interception point to the new edge
 					newEdge.points.push(visitedEdges[intercept.edge.id])
+					// Maybe something with splitEdge here?
 					continue
 				}
+
+				let separate = intercept.edge.furthestPoint(targetRegion.center)
+
+				let splitEdge = new Edge([intercept.edge.points[separate], intercept.point])
+				intercept.edge.points[separate] = intercept.point
 				
-				// Assign the interception point to the new edge
+				targetRegion.edges.push(splitEdge)
 				newEdge.points.push(intercept.point)
+
+				if (!intercept || !intercept.edge) continue
+				slicedEdges.push(splitEdge)
+
+				// Mark this edge as seen
 				visitedEdges[intercept.edge.id] = intercept.point
-
-				let targetPoint = intercept.edge.getClosestPoint(site)
-				if (this.edgeMap[targetPoint.id]) delete this.edgeMap[targetPoint.id]
-				intercept.edge.points[targetPoint] = intercept.point
 			}
-			
-			let targetRegion = this.regions.find(region => region.id == regionID)
-			let [theta0, theta1] = [
-				site.angleTo(newEdge.points[0]), 
-				site.angleTo(newEdge.points[1])
-			]
-			let thetaMax = Math.max(theta0, theta1)
-			let thetaMin = Math.min(theta0, theta1)
 
+			// Flood fill through `region.edges` starting at `touchedEdges` and only going in the direction that isn't towards `floodIntercepts`
+			let invalidPoints = newEdge.points.map(s => s.id)
 
-			// Now remove any invalid points and edge
-			let oldLength = targetRegion.edges.length
-			targetRegion.edges = targetRegion.edges.filter(function(edge) {
-				return edge.points.some(function(point) {
-					let newTheta = site.angleTo(point)
-					let checker = (newTheta >= thetaMax || newTheta <= thetaMin)
-					// if (checker) console.log(util.inspect(edge, false, 5))
+			// Start at one end, go to other
+			let [start, end, points] = [slicedEdges[0], slicedEdges[1], newEdge.points.map(s => s.id)]
+			console.log(util.inspect(targetRegion.edges, false, 4))
+			console.log(points)
+			let current = start
+			let done = false
 
-					return checker
-				})
-			})
-			let newLength = targetRegion.edges.length
-			console.log(`${oldLength}\t${newLength}`)
+			while (!done) {
+				if (!current || current.id == end.id) {
+					done = true
+					break
+				}
+
+				let nextPoint = current.points.find(s => !points.includes(s.id))
+				let nextEdge = targetRegion.nextEdge(current, nextPoint)
+
+				points.push(nextPoint.id)
+
+				targetRegion.edges.splice(targetRegion.edges.findIndex(s => s.id == current.id))
+				newRegion.edges.push(current)
+
+				current = nextEdge
+			}
+
 			targetRegion.edges.push(newEdge)
 			newEdges.push(newEdge)
 		}
-
-		let newRegion = new Region(site, newEdges)
-		for (let edge of newRegion.edges) {
-			for (let point of edge.points) {
-				// this.toDraw.push(point.getStr(this.drawOffset))
-			}
-		}
 		
+		// Prune `newRegion` of any redundant edges
+		// ...
+
+		// and now we wrap things up
+		
+		newRegion.edges = newEdges
 		this.regions.push(newRegion)
-		this.updateMaps()
 	}
 	draw() {
 		let outStr = ''
 
-		let points = `${this.drawOffset.x},${this.drawOffset.y} ${this.drawOffset.x},${this.drawOffset.y+49} ${this.drawOffset.x+49},${this.drawOffset.y+49} ${this.drawOffset.x+49},${this.drawOffset.y}`
-		outStr += `<polygon points="${points}" fill="none" stroke="grey" stroke-width="1"></polygon>\n`
+		let points = `${this.drawOffset.x},${this.drawOffset.y} ${this.drawOffset.x},${this.drawOffset.y+49*this.scale} ${this.drawOffset.x+49*this.scale},${this.drawOffset.y+49*this.scale} ${this.drawOffset.x+49*this.scale},${this.drawOffset.y}`
+		// outStr += `<polygon points="${points}" fill="none" stroke="grey" stroke-width="${this.scale || 1}"></polygon>\n`
 
 		for (let region of this.regions) {
-			outStr += `${region.getStr(this.drawOffset)}\n`
+			outStr += `${region.getStr({
+				drawOffset: this.drawOffset, 
+				scale: this.scale
+			})}\n`
 		}
 
 		for (let str of this.toDraw) {
@@ -296,23 +220,15 @@ class Voronoi {
 	}
 }
 
-let V = new Voronoi(new Point(400, 100))
-let V2 = new Voronoi(new Point(150, 100))
+let V = new Voronoi({scale: 4})
 
 V.addSite(new Point(5, 10))
-V.addSite(new Point(5, 39))
-
-V2.addSite(new Point(5, 10))
-// V2.addSite(new Point(5, 39))
-// V2.addSite(new Point(43, 4))
-// V.addSite(new Point(24, 10))
-// V.addSite(new Point(41, 5))
-// V.addSite(new Point(41, 5))
-
+V.addSite(new Point(30, 30))
+// V.addSite(new Point(15, 20))
+// V.addSite(new Point(6, 12))
 let VDraw = V.draw()
-let V2Draw = V2.draw()
 
-
+// Meta stuff used for drawing
 function draw(diagramDraw) {
 	let outStr = `<html><body><svg width="2000" height="4000">\n`
 
@@ -323,4 +239,5 @@ function draw(diagramDraw) {
 
 	return outStr
 }
-fs.writeFile('src/Classes/Planner/test.html', draw([VDraw, V2Draw]), s => s)//console.log(util.inspect(V, false, 10)))
+// fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => console.log(util.inspect(V, false, 10)))
+fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => s)
