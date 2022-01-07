@@ -135,7 +135,8 @@ class Voronoi {
 			let targetRegion = this.regions.find(s => s.id == regionID)
 			let newEdge = new Edge()
 
-			let slicedEdges = []
+			let checkNode
+			let endNode
 
 			// Split the existing edge on `intercept.point`
 			for (let intercept of intersections[regionID]) {
@@ -154,38 +155,37 @@ class Voronoi {
 				newEdge.points.push(intercept.point)
 
 				if (!intercept || !intercept.edge) continue
-				slicedEdges.push(splitEdge)
+				if (!checkNode) {
+					checkNode = {
+						edge: intercept.edge,
+						point: intercept.point
+					}
+				}
+				else {
+					endNode = intercept.point
+				}
 
 				// Mark this edge as seen
 				visitedEdges[intercept.edge.id] = intercept.point
 			}
 
-			// Flood fill through `region.edges` starting at `touchedEdges` and only going in the direction that isn't towards `floodIntercepts`
-			let invalidPoints = newEdge.points.map(s => s.id)
+			// Start our donation search
+			let donated = []
+			while (checkNode.point.id != endNode.id) {
+				let nextEdge = targetRegion.nextEdge(checkNode.edge, checkNode.point)
+				let nextPoint = nextEdge.points.find(s => s.id != checkNode.point.id)
+				// console.log(nextEdge, nextPoint)
 
-			// Start at one end, go to other
-			let [start, end, points] = [slicedEdges[0], slicedEdges[1], newEdge.points.map(s => s.id)]
-			console.log(util.inspect(targetRegion.edges, false, 4))
-			console.log(points)
-			let current = start
-			let done = false
+				donated.push(nextEdge)
 
-			while (!done) {
-				if (!current || current.id == end.id) {
-					done = true
-					break
+				checkNode = {
+					edge: nextEdge,
+					point: nextPoint
 				}
-
-				let nextPoint = current.points.find(s => !points.includes(s.id))
-				let nextEdge = targetRegion.nextEdge(current, nextPoint)
-
-				points.push(nextPoint.id)
-
-				targetRegion.edges.splice(targetRegion.edges.findIndex(s => s.id == current.id))
-				newRegion.edges.push(current)
-
-				current = nextEdge
 			}
+
+			targetRegion.edges = targetRegion.edges.filter(edge => !donated.map(s => s.id).includes(edge.id))
+			newEdges.push(...donated)
 
 			targetRegion.edges.push(newEdge)
 			newEdges.push(newEdge)
@@ -225,7 +225,7 @@ let V = new Voronoi({scale: 4})
 V.addSite(new Point(5, 10))
 V.addSite(new Point(30, 30))
 // V.addSite(new Point(15, 20))
-// V.addSite(new Point(6, 12))
+V.addSite(new Point(6, 12))
 let VDraw = V.draw()
 
 // Meta stuff used for drawing
