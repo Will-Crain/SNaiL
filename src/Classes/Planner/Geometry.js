@@ -31,8 +31,8 @@ class Region {
 	 */
 	 nextEdge(from, point) {
 		return this.edges.find(function(edge) {
-			let idMap = edge.points.map(point => point.id)
-			return idMap.includes(point.id) && edge.id != from.id
+			if (edge.id == from.id) return false
+			return edge.points.map(point => point.id).includes(point.id)
 		})
 	 }
 	/**
