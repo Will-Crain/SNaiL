@@ -24,17 +24,32 @@ class Region {
 		return this
 	}
 
-	/**
-	 * @name nextEdge Returns an array of edges in this region that have a point `point`.
-	 * @param {Edge} from The point to consider
-	 * @param {Point} point The point which we're considering
-	 */
-	 nextEdge(from, point) {
-		return this.edges.find(function(edge) {
-			if (edge.id == from.id) return false
-			return edge.points.map(point => point.id).includes(point.id)
+	// Also consider ordering all the points from least CW to most CCW?
+	nextEdge(from) {
+		// Get the least CW point of this edge
+		let targetPoint = from.points[0]
+		if (this.getAngle(from.points[1]) < this.getAngle(from.points[0])) targetPoint = from.points[1]
+
+		// Now get the next edge that shares that point
+		let nextEdge = this.edges.find(function(refEdge) {
+			let pointMap = refEdge.points.map(s => s.id)
+			return refEdge.points.some(p => pointMap.includes(p.id)) && refEdge.id != from.id
 		})
-	 }
+
+		return nextEdge
+	}
+	getAngle(point) {
+		return Math.atan2(point.y, point.x)
+	}
+
+	//  nextEdge(from, point) {
+
+
+	// 	return this.edges.find(function(edge) {
+	// 		if (edge.id == from.id) return false
+	// 		return edge.points.map(point => point.id).includes(point.id)
+	// 	})
+	//  }
 	/**
 	 * @name getstr Returns a string representing this object for SVG
 	 * @returns {String} A string representation of the object
@@ -68,14 +83,16 @@ class Region {
 		return outStr
 	}
 }
+Region.directions = {'CW': 'CW', 'CCW': 'CCW'}
 
 class Edge {
 	/**
 	 * @param {Point} points An array of points to give this edge
 	 * @returns {Edge} An edge object
 	 */
-	constructor(points=[]) {
+	constructor(points=[], isEdge=false) {
 		this.points = points
+		this.isEdge = isEdge
 
 		this.id = makeID()
 

@@ -80,10 +80,10 @@ class Voronoi {
 				new Point(this.bounds[0], this.bounds[1])
 			]
 			this.edges = [ 
-				new Edge([this.points[0], this.points[1]]),
-				new Edge([this.points[1], this.points[2]]),
-				new Edge([this.points[2], this.points[3]]),
-				new Edge([this.points[3], this.points[0]])
+				new Edge([this.points[0], this.points[1]], true),
+				new Edge([this.points[1], this.points[2]], true),
+				new Edge([this.points[2], this.points[3]], true),
+				new Edge([this.points[3], this.points[0]], true)
 			]
 			let region = new Region(site, [this.edges[0], this.edges[1], this.edges[2], this.edges[3]])
 			this.regions = [region]
@@ -95,7 +95,6 @@ class Voronoi {
 
 		// If this isn't the first site, continue as normal
 		let closestRegion = site.nearestRegion(this.regions)
-
 
 		let intersections = {}
 
@@ -130,7 +129,6 @@ class Voronoi {
 		let visitedEdges = {}
 		let newEdges = []
 
-
 		for (let regionID in intersections) {
 			let targetRegion = this.regions.find(s => s.id == regionID)
 			let newEdge = new Edge()
@@ -142,7 +140,6 @@ class Voronoi {
 			for (let intercept of intersections[regionID]) {
 				if (visitedEdges[intercept.edge.id]) {
 					newEdge.points.push(visitedEdges[intercept.edge.id])
-					// Maybe something with splitEdge here?
 					continue
 				}
 
@@ -171,17 +168,24 @@ class Voronoi {
 
 			// Start our donation search
 			let donated = []
-			while (checkNode.point.id != endNode.id) {
-				let nextEdge = targetRegion.nextEdge(checkNode.edge, checkNode.point)
-				let nextPoint = nextEdge.points.find(s => s.id != checkNode.point.id)
+			let visited = []
+			let toVisit = [checkNode]
+
+			while (toVisit.length > 0) {
+				let thisNode = toVisit.shift()
+
+				let nextEdge = targetRegion.nextEdge(thisNode.edge, thisNode.point)
+				let nextPoint = nextEdge.points.find(s => s.id != thisNode.point.id)
 				// console.log(nextEdge, nextPoint)
 
+				if (visited.includes(nextEdge.id) || newEdge.points.map(s => s.id).includes(nextPoint.id)) continue
 				donated.push(nextEdge)
 
-				checkNode = {
+				let newNode = {
 					edge: nextEdge,
 					point: nextPoint
 				}
+				toVisit.push(newNode)
 			}
 
 			targetRegion.edges = targetRegion.edges.filter(edge => !donated.map(s => s.id).includes(edge.id))
@@ -196,6 +200,7 @@ class Voronoi {
 
 		// and now we wrap things up
 		
+		newEdges = newEdges.filter(s => s.isEdge)
 		newRegion.edges = newEdges
 		this.regions.push(newRegion)
 	}
@@ -203,7 +208,7 @@ class Voronoi {
 		let outStr = ''
 
 		let points = `${this.drawOffset.x},${this.drawOffset.y} ${this.drawOffset.x},${this.drawOffset.y+49*this.scale} ${this.drawOffset.x+49*this.scale},${this.drawOffset.y+49*this.scale} ${this.drawOffset.x+49*this.scale},${this.drawOffset.y}`
-		// outStr += `<polygon points="${points}" fill="none" stroke="grey" stroke-width="${this.scale || 1}"></polygon>\n`
+		outStr += `<polygon points="${points}" fill="none" stroke="grey" stroke-width="${this.scale || 1}"></polygon>\n`
 
 		for (let region of this.regions) {
 			outStr += `${region.getStr({
@@ -222,10 +227,10 @@ class Voronoi {
 
 let V = new Voronoi({scale: 4})
 
-V.addSite(new Point(5, 10))
+V.addSite(new Point(15, 10))
 V.addSite(new Point(30, 30))
-// V.addSite(new Point(15, 20))
-V.addSite(new Point(6, 12))
+V.addSite(new Point(15, 20))
+// V.addSite(new Point(30, 10))
 let VDraw = V.draw()
 
 // Meta stuff used for drawing
