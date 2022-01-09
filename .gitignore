@@ -2,8 +2,8 @@
 test.js
 node_modules
 dist
+Internal
 .vscode
 package.json
 package-lock.json
 test.html
-voronoi.js
