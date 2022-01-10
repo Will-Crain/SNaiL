@@ -3,8 +3,8 @@ RoomPosition.serialize = function(pos) {
 	let y = pos.y
 	let name = pos.roomName
 	
-	if (x < 10) `0${x}`
-	if (y < 10) `0${y}`
+	if (x < 10) x = `0${x}`
+	if (y < 10) y = `0${y}`
 
 	return `${x}${y}${name}`
 }
