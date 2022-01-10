@@ -1,7 +1,7 @@
 /**
  * shoutout again to MarvinTMB for getting rid of my color space transforms
  */
- RoomVisual.drawGrid = function(grid, roomName, opts={}) {
+RoomVisual.drawGrid = function(grid, roomName, opts={}) {
     let {minCutoff=0, maxCutoff=255} = opts
     let RV = new RoomVisual(roomName)
     
