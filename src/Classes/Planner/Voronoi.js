@@ -3,7 +3,7 @@ const fs = require('fs')
 require('./Geometry')
 
 // Order is maroon -> navy -> yellow -> orange -> purple -> grey -> something -> black
-const colors = ['#800000', '#000075', '#f58231', '#ffe119', '#4363d8', '#a9a9a9', '#dcbeff', '#000000']
+const colors = ['#800000', '#000075', '#F58231', '#FFE119', '#4363D8', '#A9A9A9', '#DCBEFF', '#000000']
 
 function makeID() {
 	return `${Math.random().toString(36).slice(2, 11)}`.toUpperCase()
@@ -44,7 +44,8 @@ class Voronoi {
 		for (let edge of region.edges) {
 
 			// Get an intercept, or early continue if it doesn't exist
-			let interception = bisector.intercept(edge, edge.midPoint)
+			let {interception, type} = bisector.intercept(edge, edge.midPoint)
+			console.log(type)
 			if (!interception) continue
 			
 			// this.toDraw.push(connector.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[0]}))
@@ -69,7 +70,7 @@ class Voronoi {
 	}
 
 	addSite(site) {
-		this.toDraw = []
+		// this.toDraw = []
 		// Special case where this is the first site in the graph
 		if (this.regions.length == 0) {
 			// Initialize points at boundaries
@@ -122,19 +123,14 @@ class Voronoi {
 			// Add this region to our checked regions list
 			visitedRegions.push(region.id)
 		}
-
-		// console.log(util.inspect(intersections, false, 7) + '\n\n\n\n')
 	
-		// Now we iterate through `intersections` and create edges
+		// Now we iterate through `intersections` and create new edges
 		let visitedEdges = {}
 		let newEdges = []
 
 		for (let regionID in intersections) {
 			let targetRegion = this.regions.find(s => s.id == regionID)
 			let newEdge = new Edge()
-
-			let checkNode
-			let endNode
 
 			// Split the existing edge on `intercept.point`
 			for (let intercept of intersections[regionID]) {
@@ -145,62 +141,51 @@ class Voronoi {
 
 				let separate = intercept.edge.furthestPoint(targetRegion.center)
 
-				let splitEdge = new Edge([intercept.edge.points[separate], intercept.point])
+				let splitEdge = new Edge([intercept.edge.points[separate], intercept.point], intercept.edge.isEdge)
 				intercept.edge.points[separate] = intercept.point
 				
 				targetRegion.edges.push(splitEdge)
 				newEdge.points.push(intercept.point)
 
 				if (!intercept || !intercept.edge) continue
-				if (!checkNode) {
-					checkNode = {
-						edge: intercept.edge,
-						point: intercept.point
-					}
-				}
-				else {
-					endNode = intercept.point
-				}
 
 				// Mark this edge as seen
 				visitedEdges[intercept.edge.id] = intercept.point
 			}
 
-			// Start our donation search
-			let donated = []
-			let visited = []
-			let toVisit = [checkNode]
-
-			while (toVisit.length > 0) {
-				let thisNode = toVisit.shift()
-
-				let nextEdge = targetRegion.nextEdge(thisNode.edge, thisNode.point)
-				let nextPoint = nextEdge.points.find(s => s.id != thisNode.point.id)
-				// console.log(nextEdge, nextPoint)
-
-				if (visited.includes(nextEdge.id) || newEdge.points.map(s => s.id).includes(nextPoint.id)) continue
-				donated.push(nextEdge)
-
-				let newNode = {
-					edge: nextEdge,
-					point: nextPoint
-				}
-				toVisit.push(newNode)
+			// Format `newEdge` such that newEdges.points[0] is on the right side of the connector
+			let connector = new Edge([newRegion.center, targetRegion.center])
+			if (connector.getSide(newEdge.points[0]) > 0) {
+				let placeholder = newEdge.points[0]
+				newEdge.points[0] = newEdge.points[1]
+				newEdge.points[1] = placeholder
 			}
-
-			targetRegion.edges = targetRegion.edges.filter(edge => !donated.map(s => s.id).includes(edge.id))
-			newEdges.push(...donated)
-
-			targetRegion.edges.push(newEdge)
 			newEdges.push(newEdge)
+			// this.toDraw.push(newRegion.center.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[10]}))
+			// this.toDraw.push(targetRegion.center.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[6]}))
+
+			this.toDraw.push(newEdge.points[0].getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[10]}))
+			this.toDraw.push(newEdge.points[1].getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[6]}))
+
+			// Find the point on the bisector to the right of the line connecting the two regions
+			let filterEdges = []
+			for (let edge of targetRegion.edges) {
+				for (let point of edge.points) {
+					console.log(newEdge.getSide(point))
+					if (newEdge.getSide(point) > 0) {
+						newEdges.push(edge)
+						filterEdges.push(edge.id)
+						// this.toDraw.push(edge.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[7]}))
+					}
+				}
+			}
+			targetRegion.edges = targetRegion.edges.filter(s => !filterEdges.includes(s.id))
+			// filterEdges.forEach(edgeID => targetRegion.edges.splice(targetRegion.edges.findIndex(s => s.id == edgeID)))
+			targetRegion.edges.push(newEdge)
 		}
-		
-		// Prune `newRegion` of any redundant edges
-		// ...
 
 		// and now we wrap things up
 		
-		newEdges = newEdges.filter(s => s.isEdge)
 		newRegion.edges = newEdges
 		this.regions.push(newRegion)
 	}
@@ -208,7 +193,7 @@ class Voronoi {
 		let outStr = ''
 
 		let points = `${this.drawOffset.x},${this.drawOffset.y} ${this.drawOffset.x},${this.drawOffset.y+49*this.scale} ${this.drawOffset.x+49*this.scale},${this.drawOffset.y+49*this.scale} ${this.drawOffset.x+49*this.scale},${this.drawOffset.y}`
-		outStr += `<polygon points="${points}" fill="none" stroke="grey" stroke-width="${this.scale || 1}"></polygon>\n`
+		// outStr += `<polygon points="${points}" fill="none" stroke="grey" stroke-width="${1}"></polygon>\n`
 
 		for (let region of this.regions) {
 			outStr += `${region.getStr({
@@ -227,9 +212,15 @@ class Voronoi {
 
 let V = new Voronoi({scale: 4})
 
-V.addSite(new Point(15, 10))
-V.addSite(new Point(30, 30))
-V.addSite(new Point(15, 20))
+// V.addSite(new Point(10, 7))
+// V.addSite(new Point(15, 10))
+// V.addSite(new Point(14, 20))
+
+V.addSite(new Point(10, 10))
+V.addSite(new Point(15, 15))
+V.addSite(new Point(25, 25))
+V.addSite(new Point(15, 25))
+
 // V.addSite(new Point(30, 10))
 let VDraw = V.draw()
 

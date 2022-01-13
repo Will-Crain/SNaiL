@@ -2,7 +2,11 @@ const util = require('util')
 const fs = require('fs')
 
 // Order is Heat Wave -> Glaucous -> Dark Purple -> Brick Red -> Black
-const colors = ['#FD7F20', '#6082B6', '#230C33', '#C33C54', '#000000']
+// const colors = ['#FD7F20', '#6082B6', '#230C33', '#C33C54', '#000000']
+// Order is maroon -> navy -> yellow -> orange -> purple -> grey -> something -> black
+// const colors = ['#800000', '#000075', '#F58231', '#FFE119', '#4363D8', '#A9A9A9', '#DCBEFF', '#000000']
+const colors = ['#e60049', '#0bb4ff', '#50e991', '#e6d800', '#9b19f5', '#ffa300', '#dc0ab4', '#b3d4ff', '#00bfa0', '#000000']
+
 let counter = 0
 
 function makeID() {
@@ -24,32 +28,6 @@ class Region {
 		return this
 	}
 
-	// Also consider ordering all the points from least CW to most CCW?
-	nextEdge(from) {
-		// Get the least CW point of this edge
-		let targetPoint = from.points[0]
-		if (this.getAngle(from.points[1]) < this.getAngle(from.points[0])) targetPoint = from.points[1]
-
-		// Now get the next edge that shares that point
-		let nextEdge = this.edges.find(function(refEdge) {
-			let pointMap = refEdge.points.map(s => s.id)
-			return refEdge.points.some(p => pointMap.includes(p.id)) && refEdge.id != from.id
-		})
-
-		return nextEdge
-	}
-	getAngle(point) {
-		return Math.atan2(point.y, point.x)
-	}
-
-	//  nextEdge(from, point) {
-
-
-	// 	return this.edges.find(function(edge) {
-	// 		if (edge.id == from.id) return false
-	// 		return edge.points.map(point => point.id).includes(point.id)
-	// 	})
-	//  }
 	/**
 	 * @name getstr Returns a string representing this object for SVG
 	 * @returns {String} A string representation of the object
@@ -70,14 +48,14 @@ class Region {
 				color: this.color,
 				width: 2
 			})}\n`
-			for (let point of edge.points) {
-				outStr += `${point.getStr({
-					drawOffset: drawOffset, 
-					scale: scale,
-					color: this.color,
-					opacity: 0.5
-				})}\n`
-			}
+			// for (let point of edge.points) {
+			// 	outStr += `${point.getStr({
+			// 		drawOffset: drawOffset, 
+			// 		scale: scale,
+			// 		color: this.color,
+			// 		opacity: 0.5
+			// 	})}\n`
+			// }
 		}
 
 		return outStr
@@ -151,11 +129,19 @@ class Edge {
 	}
 
 	/**
+	 * @returns {Boolean} Returns true if a point is to the right of `this`, false if left or collinear
+	 */
+	getSide(point) {
+		let cross = ( (this.points[1].x - this.points[0].x)*(point.y - this.points[0].y) - (this.points[1].y - this.points[0].y)*(point.x - this.points[0].x) )
+		return cross
+	}
+
+	/**
 	 * @name intercept If it exists, returns a point of intersection between two edges. Otherwise, false
 	 * @param {Edge} that The other edge to consider
 	 * @returns {Point} A new point at the point of intersection, or an existing point if the intersection is coincedent with another point
 	 */
-	intercept(that, midPoint) {
+	intercept(that) {
 		// Thanks to this stack overflow answer by Dan Fox 
 		// https://stackoverflow.com/questions/9043805/test-if-two-lines-intersect-javascript-function
 
@@ -167,11 +153,8 @@ class Edge {
 		// Calculate the determinant super quick to see if an interception does exist (only 0 if not linearlly independent, which implies the lines are parallel)
 		let determinant = thisDx*thatDy - thatDx*thisDy
 		if (determinant == 0) {
-			return false
+			return {interception: null, type: 'parallel'}
 		}
-
-		// Check for colinearity?
-
 		// Lambda and Gamma are the constants for the paramaterization of `this` and `that`, respectively
 		
 		let lambda = ((that.points[1].y - that.points[0].y) * (that.points[1].x - this.points[0].x) + (that.points[0].x - that.points[1].x) * (that.points[1].y-this.points[0].y)) / determinant
@@ -179,17 +162,17 @@ class Edge {
 
 		// This intersection only exists if gamma is between 0 and 1. At 0, the point is `points[0]` and at 1, the point is `points[1]`.
 		if (gamma > 1 || gamma < 0) {
-			return false
+			return {interception: null, type: 'parallel'}
 		}
 
 		// Are we coincedent anywhere?
-		if (lambda == 0) return this.points[0]
-		else if (lambda == 1) return this.points[1]
-		else if (gamma == 0) return that.points[0]
-		else if (gamma == 1) return that.points[1]
+		if (lambda == 0) return {interception: this.points[0], type: 'collinear'}
+		else if (lambda == 1) return {interception: this.points[1], type: 'collinear'}
+		else if (gamma == 0) return {interception: that.points[0], type: 'collinear'}
+		else if (gamma == 1) return {interception: that.points[1], type: 'collinear'}
 
 		// Doesn't matter which vector we use now
-		return this.points[0].copy().add(thisDirection.mul(lambda))
+		return {interception: this.points[0].copy().add(thisDirection.mul(lambda)), type: 'acollinear'}
 	}
 
 	/**
@@ -204,7 +187,7 @@ class Edge {
 			points += `${Math.round((point.x*scale+drawOffset.x)*100)/100},${Math.round( (point.y*scale+drawOffset.y)*100)/100} `
 		}
 		
-		let outStr = `<polyline points="${points}" stroke="${color || 'black'}" fill="none" stroke-width="${width}"></polyline>`
+		let outStr = `<polyline points='${points}' stroke='${color || 'black'}' opacity='0.5' fill='none' stroke-width='${width}'></polyline>`
 		
 		return outStr
 	}
@@ -349,7 +332,7 @@ class Point {
 	 */
 	getStr(opts) {
 		let {color, drawOffset, scale=1, opacity=1} = opts
-		let outStr = `<circle cx="${Math.round((this.x*scale+drawOffset.x)*100)/100}" cy="${Math.round((this.y*scale+drawOffset.y)*100)/100}" r="3" fill="${color || 'black'}" opacity="${opacity}"></circle>`
+		let outStr = `<circle cx='${Math.round((this.x*scale+drawOffset.x)*100)/100}' cy='${Math.round((this.y*scale+drawOffset.y)*100)/100}' r='3' fill='${color || 'black'}' opacity='${opacity}'></circle>`
 
 		return outStr
 	}
