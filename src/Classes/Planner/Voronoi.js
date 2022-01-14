@@ -220,10 +220,11 @@ let V = new Voronoi({scale: 4})
 // V.addSite(new Point(15, 10))
 // V.addSite(new Point(14, 20))
 
-V.addSite(new Point(10, 10))
-V.addSite(new Point(15, 10))
-V.addSite(new Point(15, 16))
-V.addSite(new Point(23, 15))
+
+let sites = [[10, 10], [36, 10], [28, 10]]
+for (let site of sites) {
+	V.addSite(new Point(site[0], site[1]))
+}
 
 // V.addSite(new Point(30, 10))
 let VDraw = V.draw()
@@ -239,5 +240,5 @@ function draw(diagramDraw) {
 
 	return outStr
 }
-fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => console.log(util.inspect(V, false, 15)))
-// fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => s)
+// fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => console.log(util.inspect(V, false, 15)))
+fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => s)
