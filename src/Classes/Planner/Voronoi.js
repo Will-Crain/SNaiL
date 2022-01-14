@@ -40,12 +40,13 @@ class Voronoi {
 		// Generate `connector` and `bisector`
 		let connector = new Edge([site, region.center])
 		let bisector = connector.bisector()
+		// this.toDraw.push(bisector.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[10]}))
 
 		for (let edge of region.edges) {
+			// Is the midpoint on this edge?
 
 			// Get an intercept, or early continue if it doesn't exist
 			let {interception, type} = bisector.intercept(edge, edge.midPoint)
-			console.log(type)
 			if (!interception) continue
 			
 			// this.toDraw.push(connector.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[0]}))
@@ -53,7 +54,7 @@ class Voronoi {
 			// this.toDraw.push(region.center.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[2]}))
 
 			let targetRegion = this.regions.find(function(targetRegion) {
-				targetRegion.edges.find(function(targetEdge) {
+				return targetRegion.edges.find(function(targetEdge) {
 					return targetEdge.id == edge.id
 				})
 			})
@@ -70,7 +71,8 @@ class Voronoi {
 	}
 
 	addSite(site) {
-		// this.toDraw = []
+		this.toDraw = []
+
 		// Special case where this is the first site in the graph
 		if (this.regions.length == 0) {
 			// Initialize points at boundaries
@@ -140,11 +142,12 @@ class Voronoi {
 				}
 
 				let separate = intercept.edge.furthestPoint(targetRegion.center)
-
 				let splitEdge = new Edge([intercept.edge.points[separate], intercept.point], intercept.edge.isEdge)
+
+				// Only give `targetRegion` `splitEdge` if it's a bounding edge
+				if (splitEdge.isEdge) targetRegion.edges.push(splitEdge)
+
 				intercept.edge.points[separate] = intercept.point
-				
-				targetRegion.edges.push(splitEdge)
 				newEdge.points.push(intercept.point)
 
 				if (!intercept || !intercept.edge) continue
@@ -171,8 +174,10 @@ class Voronoi {
 			let filterEdges = []
 			for (let edge of targetRegion.edges) {
 				for (let point of edge.points) {
-					console.log(newEdge.getSide(point))
 					if (newEdge.getSide(point) > 0) {
+						let edgeMap = newEdges.map(s => s.id)
+						if (edgeMap.includes(edge.id)) continue
+
 						newEdges.push(edge)
 						filterEdges.push(edge.id)
 						// this.toDraw.push(edge.getStr({drawOffset: this.drawOffset, scale: this.scale, color: colors[7]}))
@@ -185,7 +190,6 @@ class Voronoi {
 		}
 
 		// and now we wrap things up
-		
 		newRegion.edges = newEdges
 		this.regions.push(newRegion)
 	}
@@ -217,9 +221,9 @@ let V = new Voronoi({scale: 4})
 // V.addSite(new Point(14, 20))
 
 V.addSite(new Point(10, 10))
-V.addSite(new Point(15, 15))
-V.addSite(new Point(25, 25))
-V.addSite(new Point(15, 25))
+V.addSite(new Point(15, 10))
+V.addSite(new Point(15, 16))
+V.addSite(new Point(23, 15))
 
 // V.addSite(new Point(30, 10))
 let VDraw = V.draw()
@@ -235,5 +239,5 @@ function draw(diagramDraw) {
 
 	return outStr
 }
-// fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => console.log(util.inspect(V, false, 10)))
-fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => s)
+fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => console.log(util.inspect(V, false, 15)))
+// fs.writeFile('src/Classes/Planner/test.html', draw([VDraw]), s => s)
