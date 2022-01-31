@@ -1,11 +1,8 @@
 const util = require('util')
 const fs = require('fs')
 
-// Order is Heat Wave -> Glaucous -> Dark Purple -> Brick Red -> Black
-// const colors = ['#FD7F20', '#6082B6', '#230C33', '#C33C54', '#000000']
-// Order is maroon -> navy -> yellow -> orange -> purple -> grey -> something -> black
-// const colors = ['#800000', '#000075', '#F58231', '#FFE119', '#4363D8', '#A9A9A9', '#DCBEFF', '#000000']
-const colors = ['#e60049', '#0bb4ff', '#50e991', '#e6d800', '#9b19f5', '#ffa300', '#dc0ab4', '#b3d4ff', '#00bfa0', '#000000']
+// Order is red -> green -> blue -> cyan -> magenta -> yellow -> black
+const colors = ['#00A080', '#A000A0', '#A0A000', '#A00000', '#00A000', '#0000A0', '#000000']
 
 let counter = 0
 
@@ -23,18 +20,47 @@ class Region {
 		this.edges = edges
 
 		this.id = makeID()
-		// this.color = '#000000'
+		
+		this.drawOffset = new Point(10, 10)
 		this.color = colors[counter++]
 
 		return this
 	}
+
+	intercepts(line) {
+		let intercepts = []
+
+		for (let edgeIdx in this.edges) {
+			let edge = this.edges[edgeIdx]
+
+			let determinant = (edge.points[1].x - edge.points[0].x)*(line.points[1].y - line.points[0].y) - (line.points[1].x - line.points[0].x)*(edge.points[1].y - edge.points[0].y)
+			if (determinant == 0) continue
+
+			let lambda = ((line.points[1].y - line.points[0].y) * (line.points[1].x - edge.points[0].x) + (line.points[0].x - line.points[1].x) * (line.points[1].y-edge.points[0].y)) / determinant
+			let gamma =  ((edge.points[0].y - edge.points[1].y) * (line.points[1].x - edge.points[0].x) + (edge.points[1].x - edge.points[0].x) * (line.points[1].y-edge.points[0].y)) / determinant
+			
+			if (lambda > 1 || lambda < 0) continue
+			
+			let direction = edge.points[1].copy().sub(edge.points[0])
+			let interception = edge.points[0].copy().add(direction.copy().mul(lambda))
+
+			intercepts.push({
+				intercept: interception,
+				lambda: lambda,
+				edgeIdx: edgeIdx
+			})
+		}
+
+		return intercepts
+	}
+
 
 	/**
 	 * @name getstr Returns a string representing this object for SVG
 	 * @returns {String} A string representation of the object
 	 */
 	getStr(opts) {
-		let {drawOffset, scale=1} = opts
+		let {drawOffset=new Point(10, 10), scale=4} = opts
 		let outStr = `${this.center.getStr({
 			drawOffset: drawOffset, 
 			scale: scale,
@@ -97,7 +123,7 @@ class Edge {
 		// return this.points[1].copy().sub(this.points[0].copy()).normalize()
 	}
 	get length() {
-		return Math.pow( Math.pow(this.x, 2) + Math.pow(this.y, 2), 2 )
+		return Math.pow( Math.pow(this.points[0].x - this.points[1].x, 2) + Math.pow(this.points[0].y - this.points[1].y, 2), 2 )
 	}
 
 	/**
@@ -128,10 +154,17 @@ class Edge {
 		return 1
 	}
 
+	collinear(point) {
+		let dot0 = (point.y*this.points[0].y) + (point.x*this.points[0].x)
+		let dot1 = (point.y*this.points[1].y) + (point.x*this.points[1].x)
+		return (dot0 == dot1)
+	}
+
 	/**
 	 * @returns {Boolean} Returns true if a point is to the right of `this`, false if left or collinear
 	 */
 	getSide(point) {
+		// console.log(this.points, point)
 		let cross = ( (this.points[1].x - this.points[0].x)*(point.y - this.points[0].y) - (this.points[1].y - this.points[0].y)*(point.x - this.points[0].x) )
 		return cross
 	}
@@ -172,7 +205,12 @@ class Edge {
 		else if (gamma == 1) return {interception: that.points[1], type: 'collinear'}
 
 		// Doesn't matter which vector we use now
-		return {interception: this.points[0].copy().add(thisDirection.mul(lambda)), type: 'acollinear'}
+		
+		return {
+			intercept: this.points[0].copy().add(thisDirection.mul(lambda)),
+			gamma: gamma,
+			edge: edge
+		}
 	}
 
 	/**
@@ -180,7 +218,7 @@ class Edge {
 	 * @returns {String} A string representation of the object
 	 */
 	getStr(opts) {
-		let {drawOffset, color='black', scale=1, width=1} = opts
+		let {drawOffset=new Point(10, 10), color='black', scale=1, width=1} = opts
 		let points = ''
 
 		for (let point of this.points) {
@@ -206,6 +244,10 @@ class Point {
 		this.id = makeID()
 
 		return this
+	}
+	
+	get length() {
+		return Math.pow( Math.pow(this.x, 2) + Math.pow(this.y, 2), 2 )
 	}
 	/**
 	 * @name sub Subtracts a point from this point. Mutates this, does not mutate that.
@@ -241,19 +283,10 @@ class Point {
 		return this
 	}
 
-	nearestRegion(regions) {
-		let nearest, dist
-
-		for (let region of regions) {
-			let distance = this.distanceTo(region.center)
-			if (!dist || distance < dist) {
-				dist = distance
-				nearest = region
-			}
-		}
-
-		return nearest
+	dot(that) {
+		return (this.x*that.x + this.y*that.y) / (this.length * that.length)
 	}
+
 	nearest(points) {
 		let nearest, dist
 
@@ -331,8 +364,8 @@ class Point {
 	 * @returns {String} A string representation of the object
 	 */
 	getStr(opts) {
-		let {color, drawOffset, scale=1, opacity=1} = opts
-		let outStr = `<circle cx='${Math.round((this.x*scale+drawOffset.x)*100)/100}' cy='${Math.round((this.y*scale+drawOffset.y)*100)/100}' r='2' fill='${color || 'black'}' opacity='${opacity}'></circle>`
+		let {color, drawOffset=new Point(10, 10), scale=1, opacity=1, radius=2} = opts
+		let outStr = `<circle cx='${Math.round((this.x*scale+drawOffset.x)*100)/100}' cy='${Math.round((this.y*scale+drawOffset.y)*100)/100}' r='${radius || 3}' fill='${color || 'black'}' opacity='${opacity}'></circle>`
 
 		return outStr
 	}
@@ -345,6 +378,7 @@ class Point {
 		return new Point(this.x, this.y)
 	}
 }
+
 
 global.Region = Region
 global.Edge = Edge

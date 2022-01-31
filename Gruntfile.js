@@ -31,6 +31,7 @@ module.exports = function(grunt) {
 	var email = grunt.option('email') || config.email
 	var password = grunt.option('password') || config.password
 	var private_directory = grunt.option('private_directory') || config.private_directory
+	var server = grunt.option('server') || 'world'
 
 	grunt.loadNpmTasks('grunt-screeps')
 	grunt.loadNpmTasks('grunt-contrib-clean')
@@ -42,7 +43,8 @@ module.exports = function(grunt) {
 			options: {
 				email: email,
 				password: password,
-				branch: branch
+				branch: branch,
+				server: server
 			},
 			dist: {
 				src: ['dist/*.js'],
