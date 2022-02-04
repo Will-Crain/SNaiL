@@ -1,5 +1,11 @@
 .screeps.json
 test.js
 node_modules
+Internal
+package.json
+package-lock.json
+.html
+
 dist
+.vs
 .vscode

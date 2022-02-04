@@ -1,48 +1,35 @@
-RoomVisual.drawGrid = function(grid, roomName, scope={}) {
-	let {reverse=false, type='linear', cutoffMax=255, cutoffMin=-1, text} = scope
+/**
+ * shoutout again to MarvinTMB for getting rid of my color space transforms
+ */
+RoomVisual.drawGrid = function(grid, roomName, opts={}) {
+    let {minCutoff=0, maxCutoff=255} = opts
     let RV = new RoomVisual(roomName)
-
-	let valueMax = _.max(grid._bits, function(s) {
-		if (s < cutoffMax) {
-			return s
-		}
+    
+	let valueMax = _.max(grid._bits, function(val) {
+	    if (val < maxCutoff) return val
+	})
+	let valueMin = _.min(grid._bits, function(val) {
+	    if (val > minCutoff) return val
 	})
 	
-    for (let i in grid._bits) {
-		if (!(grid._bits[i] < cutoffMax && grid._bits[i] > cutoffMin)) {
-			continue
-		}
+    for (let x = 0; x < 50; x++) {
+        for (let y = 0; y < 50; y++) {
+            let gridValue = grid.get(x, y)
 
-		let x = Math.floor(i/50)
-		let y = i%50
+            if (gridValue >= maxCutoff || gridValue <= minCutoff) continue
 
-		let colorMax = 0.6
-		let colorMin = 0
+			let [hueMin, hueMax] = [0.1, 0.6]
+			let colorScale = hueMin + (hueMax - hueMin)
 
-		let colorScale = colorMin + (colorMax - colorMin)
-		if (reverse) {
-			colorScale = colorMax - (colorMax - colorMin)
-		}
+			let h = hueMin + colorScale*(gridValue-valueMin)/valueMax
+			let s = 1
+			let l = 0.6
+			
+			let color = `hsl(${h*360}, ${s*100}%, ${l*100}%)`
 
-		let h = colorScale*(grid._bits[i]/valueMax)
-		if (type == 'sqrt') {
-			h = colorScale * Math.pow(grid._bits[i]/valueMax, 0.5)
-		}
-		let s = 1
-		let l = 0.6
-		let hexColor = HSL_TO_HEX(h, s, l)
-
-		if (text) RV.text(grid._bits[i], x, y+0.25, {stroke: '#000000', color: '#ffffff', opacity: 0.5})
-		RV.rect(x-0.5, y-0.5, 1, 1, {fill: hexColor, opacity: 0.3})
+			RV.rect(x-0.5, y-0.5, 1, 1, {fill: color, opacity: 0.3})
+        }
     }
-
-	if (_.isUndefined(Imperium.visuals)) {
-		Imperium.visuals = {}
-	}
-	if (_.isUndefined(Imperium.visuals[roomName])) {
-		Imperium.visuals[roomName] = []
-	}
-	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+200, init: Game.time})
 }
 RoomVisual.drawPath = function(path, roomName) {
 	let RV = new RoomVisual(roomName)
@@ -98,4 +85,32 @@ RoomVisual.drawPositions = function(serializedPositions, roomName) {
 		Imperium.visuals[roomName] = []
 	}
 	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+200, init: Game.time})
+}
+
+RoomVisual.drawPolygons = function(polygons, roomName) {
+	let RV = new RoomVisual(roomName)
+	for (let polygon of polygons) {
+		let randColor = Math.floor(Math.random()*16777215).toString(16)
+		for (let node of polygon.nodes) {
+			let posObj = RoomPosition.parse(node)
+			RV.rect(posObj.x-0.5, posObj.y-0.5, 1, 1, {
+				opacity: 	0.25,
+				fill:		`#${randColor}`
+			})
+		}
+		for (let node of polygon.edges) {
+			let posObj = RoomPosition.parse(node)
+			RV.rect(posObj.x-0.5, posObj.y-0.5, 1, 1, {
+				opacity: 0.25
+			})
+		}
+	}
+
+	if (_.isUndefined(Imperium.visuals)) {
+		Imperium.visuals = {}
+	}
+	if (_.isUndefined(Imperium.visuals[roomName])) {
+		Imperium.visuals[roomName] = []
+	}
+	Imperium.visuals[roomName].push({visual: RV.export(), expire: Game.time+20, init: Game.time})
 }
